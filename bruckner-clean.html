@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bruckner Express OBD2</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=Lobster+Two:ital,wght@0,700;1,700&family=Righteous&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0a1628;--blue:#0e3d8a;--blue2:#1455b5;
+  --yellow:#f5c200;--yellow2:#ffe033;
+  --white:#ffffff;--offwhite:#f5f7fc;--border:#d8e2f5;
+  --text:#0a1628;--muted:#6478a0;--red:#c0392b;
+  --green:#1a7a3e;--amber:#b06a00;--radius:14px;
+  --shadow:0 1px 4px rgba(10,22,40,0.08),0 4px 16px rgba(10,22,40,0.06);
+}
+body{font-family:'Barlow',sans-serif;background:var(--offwhite);color:var(--text);min-height:100vh;padding-bottom:84px}
+
+/* POPUP OVERLAY */
+.pop-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;padding:24px}
+.pop-box{background:#fff;border-radius:18px;padding:28px 22px 24px;max-width:340px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.5);border-top:6px solid var(--yellow);border-bottom:6px solid var(--blue)}
+.pop-icon{font-size:48px;margin-bottom:10px}
+.pop-title{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.pop-sub{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:3px;margin-bottom:12px}
+.pop-msg{font-size:13px;color:var(--text);line-height:1.6;margin-bottom:20px}
+.pop-msg strong{color:var(--navy)}
+.btn-pop{width:100%;padding:15px;border-radius:11px;border:none;background:var(--blue);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 16px rgba(20,85,181,0.4)}
+.btn-pop:active{transform:scale(0.98)}
+
+/* ROLE BUTTONS */
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.btn-role{padding:18px 8px;border-radius:11px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;text-transform:uppercase;cursor:pointer;transition:all .18s}
+.btn-cust{background:var(--yellow);color:var(--navy)}
+.btn-tech{background:var(--blue);color:#fff}
+
+/* NUMPAD */
+.pass-display{font-family:'DM Mono',monospace;font-size:32px;letter-spacing:12px;color:var(--navy);background:var(--offwhite);border-radius:10px;padding:14px 10px;margin:16px 0;border:1.5px solid var(--border);min-height:62px}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.num-btn{padding:16px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--navy);cursor:pointer;transition:all .15s}
+.num-btn:active{background:var(--blue);color:#fff;transform:scale(0.95)}
+.num-del{background:#fdf0ef;color:var(--red);border-color:#f5c9c5}
+.pass-err{color:var(--red);font-size:12px;font-weight:700;font-family:'Barlow',sans-serif;margin-top:8px;min-height:18px}
+.btn-back{margin-top:14px;width:100%;padding:13px;border-radius:10px;border:none;background:var(--offwhite);color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer}
+
+/* HEADER */
+header{background:var(--blue);position:sticky;top:0;z-index:100}
+.hdr-topbar{background:var(--yellow);height:5px}
+.hdr-main{display:flex;align-items:stretch;min-height:76px}
+.hdr-photo{width:64px;flex-shrink:0;overflow:hidden;position:relative}
+.hdr-photo img{width:100%;height:100%;object-fit:cover;object-position:center top}
+.hdr-photo::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 60%,var(--blue) 100%)}
+.hdr-text{flex:1;padding:10px 14px 8px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+.shop-name{font-family:'Lobster Two',cursive;font-size:24px;font-weight:700;color:var(--yellow);line-height:1.1}
+.shop-type{font-family:'Lobster Two',cursive;font-size:16px;font-weight:700;color:var(--yellow);margin-top:1px}
+.shop-addr{font-size:10px;color:#fff;font-family:'Lobster Two',cursive;font-weight:700;margin-top:2px}
+.shop-phone{font-size:10px;color:#fff;font-family:'Lobster Two',cursive;font-weight:700;margin-top:1px}
+.hdr-right{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;padding:10px 14px;gap:4px}
+.status-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,0.6);font-family:'DM Mono',monospace}
+.status-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.2);flex-shrink:0;transition:background .3s}
+.status-dot.connected{background:#2ecc71;box-shadow:0 0 0 3px rgba(46,204,113,0.2)}
+.status-dot.connecting{background:var(--yellow);animation:blink 1s infinite}
+.status-dot.error{background:#e74c3c}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.nys-badge{font-family:'DM Mono',monospace;font-size:10px;color:var(--yellow);letter-spacing:0.5px}
+.ticker-wrap{background:var(--yellow);padding:5px 0;overflow:hidden;white-space:nowrap}
+.ticker-inner{display:inline-block;animation:ticker 18s linear infinite;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--navy)}
+@keyframes ticker{0%{transform:translateX(100vw)}100%{transform:translateX(-100%)}}
+
+/* TABS */
+.tabs{display:flex;background:#fff;border-bottom:3px solid var(--yellow);padding:0 12px}
+.tab{padding:11px 12px;font-size:13px;font-weight:600;font-family:'Barlow',sans-serif;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all .18s;border-bottom:3px solid transparent;margin-bottom:-3px;letter-spacing:.2px}
+.tab.active{color:var(--navy);border-bottom-color:var(--navy)}
+body.cust-mode .tab:not([data-tab="emissions"]){display:none}
+
+/* CONTENT */
+.content{padding:14px;max-width:480px;margin:0 auto}
+.panel{display:none}.panel.active{display:block}
+
+/* CARDS */
+.card{background:#fff;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);padding:16px;margin-bottom:12px}
+.card-title{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:13px}
+
+/* INPUTS */
+.input-row{display:flex;gap:10px;margin-bottom:10px;align-items:center}
+.input-label{font-size:13px;color:var(--muted);width:42px;flex-shrink:0}
+input[type=text],input[type=number]{flex:1;border:1.5px solid var(--border);border-radius:9px;padding:10px 12px;font-size:14px;font-family:'DM Mono',monospace;background:var(--offwhite);color:var(--text);outline:none;transition:border .2s}
+input:focus{border-color:var(--blue);background:#fff}
+
+/* BUTTONS */
+.btn{width:100%;padding:14px;border-radius:11px;border:none;font-size:14px;font-weight:700;font-family:'Barlow',sans-serif;cursor:pointer;transition:all .18s;letter-spacing:.3px}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:0 2px 10px rgba(20,85,181,0.25)}
+.btn-primary:active{transform:scale(0.98)}
+.btn-danger{background:#fdf0ef;color:var(--red);border:1px solid #f5c9c5;margin-top:10px}
+.btn-outline{background:#fff;color:var(--blue);border:1.5px solid var(--border);margin-top:10px}
+
+/* REFRESH BUTTONS */
+.refresh-btn{font-size:16px;color:#fff;background:var(--red);border:none;cursor:pointer;padding:8px 16px;border-radius:8px;font-family:'Barlow',sans-serif;font-weight:700;letter-spacing:.4px;box-shadow:0 2px 8px rgba(192,57,43,0.35)}
+.refresh-btn:active{transform:scale(0.97)}
+
+/* CONN TOGGLE */
+.conn-wrap{display:flex;justify-content:center;margin-bottom:14px}
+.conn-toggle{display:flex;background:var(--offwhite);border:1.5px solid var(--border);border-radius:11px;padding:3px;gap:3px}
+.conn-tab{display:flex;align-items:center;gap:6px;padding:9px 18px;border-radius:9px;border:none;font-size:13px;font-weight:600;font-family:'Barlow',sans-serif;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s}
+.conn-tab.active{background:var(--blue);color:#fff;box-shadow:0 1px 6px rgba(20,85,181,0.22)}
+.bt-device-row{display:flex;align-items:center;gap:12px;background:var(--offwhite);border:1.5px solid var(--border);border-radius:10px;padding:12px}
+.bt-name{font-size:14px;font-weight:600;color:var(--text)}
+.bt-sub{font-size:11px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace}
+
+/* GAUGES */
+.gauge-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.gauge-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 13px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.gauge-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--yellow)}
+.gauge-label{font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.gauge-value{font-family:'DM Mono',monospace;font-size:30px;color:var(--navy);line-height:1}
+.gauge-unit{font-size:10px;color:var(--muted);margin-top:3px;font-family:'DM Mono',monospace}
+.gauge-bar{height:3px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden}
+.gauge-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--blue),var(--yellow));transition:width .5s ease}
+.bat-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;margin-bottom:10px}
+.bat-v{font-family:'DM Mono',monospace;font-size:26px;color:var(--navy)}
+.bat-s{font-size:12px;margin-top:2px}
+.bat-good{color:var(--green)}.bat-warn{color:var(--amber)}.bat-bad{color:var(--red)}
+
+/* DTC */
+.dtc-item{background:#fff;border:1.5px solid var(--border);border-left:4px solid var(--red);border-radius:11px;padding:13px;margin-bottom:10px;box-shadow:var(--shadow);display:flex;align-items:flex-start;gap:11px}
+.dtc-code{font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:var(--red);min-width:56px}
+.dtc-desc{font-size:13px;color:var(--text);line-height:1.5}
+.dtc-sev{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.no-codes{text-align:center;padding:38px 20px;color:var(--muted)}
+.no-codes-icon{font-size:34px;margin-bottom:10px}
+
+/* FREEZE */
+.freeze-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.freeze-row:last-child{border-bottom:none}
+.freeze-key{font-size:13px;color:var(--muted)}
+.freeze-val{font-family:'DM Mono',monospace;font-size:13px;color:var(--navy)}
+
+/* LOG */
+.log-box{background:var(--offwhite);border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);line-height:1.9;max-height:140px;overflow-y:auto}
+.log-ok{color:var(--green)}.log-err{color:var(--red)}.log-info{color:var(--blue)}
+
+/* TOAST */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(50px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:100px;font-size:13px;font-weight:600;transition:transform .3s ease;z-index:9998;white-space:nowrap;border:2px solid var(--yellow);font-family:'Barlow',sans-serif;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* SECTION HEADER */
+.sec-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:13px}
+.sec-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.3px}
+
+/* READINESS */
+.ready-dot{font-size:10px;margin-right:4px}
+
+/* EMAIL BAR */
+.email-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;padding:6px 14px calc(6px + env(safe-area-inset-bottom));z-index:200;border-top:3px solid var(--yellow)}
+.email-bar-inner{max-width:480px;margin:0 auto}
+.credit{text-align:center;margin-bottom:5px;font-family:'DM Mono',monospace;font-size:9px;color:rgba(14,61,138,0.45);letter-spacing:1.5px;text-transform:uppercase}
+.credit a{color:rgba(14,61,138,0.5);text-decoration:none}
+.credit span{color:var(--blue);font-weight:700}
+.btn-email{width:100%;padding:7px 10px;border-radius:11px;border:none;background:var(--blue);color:var(--yellow);display:flex;align-items:center;justify-content:center;gap:5px;font-family:'Righteous',cursive;font-size:11px;cursor:pointer;box-shadow:0 2px 8px rgba(14,61,138,0.3)}
+.btn-email:active{transform:scale(0.98)}
+
+.demo-note{text-align:center;font-size:11px;color:var(--muted);margin-top:12px;padding:12px;background:#fffce6;border-radius:11px;border:1px solid #f0d840;line-height:1.6}
+.updating{animation:flash .4s ease}
+@keyframes flash{0%{opacity:.15}100%{opacity:1}}
+</style>
+</head>
+<body>
+
+<!-- POPUP 1: SAFETY WARNING -->
+<div class="pop-overlay" id="popSafety">
+  <div class="pop-box">
+    <div class="pop-icon">&#9888;&#65039;</div>
+    <div class="pop-title">&#9888;&#65039; WARNING &#9888;&#65039;</div>
+    <div class="pop-sub">Safety Notice</div>
+    <div class="pop-msg">
+      <strong>Do NOT use this app while driving.</strong><br><br>
+      Pull over and come to a complete stop before scanning your vehicle or reading any diagnostic data.<br><br>
+      <small style="color:var(--muted)">Bruckner Express Auto Repair &middot; 347-597-4110</small>
+    </div>
+    <button class="btn-pop" id="btnSafety">&#10003; &nbsp;I Am Not Driving</button>
+  </div>
+</div>
+
+<!-- POPUP 2: ROLE SELECTION -->
+<div class="pop-overlay" id="popRole" style="display:none">
+  <div class="pop-box">
+    <div class="pop-icon">&#128295;</div>
+    <div class="pop-title" style="color:var(--navy)">Who Are You?</div>
+    <div class="pop-sub">Select Your Role</div>
+    <div class="pop-msg">
+      <strong>Customers</strong> see Emissions results only.<br>
+      <strong>Technicians</strong> get full access to all features.
+    </div>
+    <div class="role-grid">
+      <button class="btn-role btn-cust" id="btnCust">&#128664;<br>Customer</button>
+      <button class="btn-role btn-tech" id="btnTech">&#128295;<br>Technician</button>
+    </div>
+  </div>
+</div>
+
+<!-- POPUP 3: PASSCODE -->
+<div class="pop-overlay" id="popPass" style="display:none">
+  <div class="pop-box">
+    <div class="pop-icon">&#128274;</div>
+    <div class="pop-title" style="color:var(--navy)">Technician Access</div>
+    <div class="pop-sub">Enter Passcode</div>
+    <div class="pass-display" id="passDisplay">_ &nbsp; _ &nbsp; _</div>
+    <div class="pass-err" id="passErr"></div>
+    <div class="numpad">
+      <button class="num-btn" id="n1">1</button>
+      <button class="num-btn" id="n2">2</button>
+      <button class="num-btn" id="n3">3</button>
+      <button class="num-btn" id="n4">4</button>
+      <button class="num-btn" id="n5">5</button>
+      <button class="num-btn" id="n6">6</button>
+      <button class="num-btn" id="n7">7</button>
+      <button class="num-btn" id="n8">8</button>
+      <button class="num-btn" id="n9">9</button>
+      <button class="num-btn num-del" id="nDel">&#9003;</button>
+      <button class="num-btn" id="n0">0</button>
+      <button class="num-btn num-del" id="nClr" style="font-size:13px">CLR</button>
+    </div>
+    <button class="btn-back" id="btnBack">&#8592; Back</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="hdr-topbar"></div>
+  <div class="hdr-main">
+    <div class="hdr-photo">
+      <img src="data:image/jpeg;base64,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" alt="Mora">
+    </div>
+    <div class="hdr-text">
+      <div class="shop-name">Bruckner <span style="color:var(--yellow)">Express</span></div>
+      <div class="shop-type">Auto Repair</div>
+      <div class="shop-addr">783 Bruckner Blvd, Bronx, NY 10455</div>
+      <div class="shop-phone">347-597-4110</div>
+    </div>
+    <div class="hdr-right">
+      <div class="status-badge">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Off</span>
+      </div>
+      <div class="nys-badge">NYS INSPECTION</div>
+    </div>
+  </div>
+  <div class="ticker-wrap">
+    <marquee scrollamount="3"><span class="ticker-inner">Advanced Diagnostics &nbsp;&bull;&nbsp; ECU Programming &nbsp;&bull;&nbsp; Module Programming &nbsp;&bull;&nbsp; OEM Software Flashing &nbsp;&bull;&nbsp; Electrical Diagnostics &nbsp;&bull;&nbsp; Engine Repair &nbsp;&bull;&nbsp; Transmission Service</span></marquee>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" data-tab="connect" id="tabConnect">Connect</button>
+  <button class="tab" data-tab="live" id="tabLive">Live</button>
+  <button class="tab" data-tab="codes" id="tabCodes">Codes</button>
+  <button class="tab" data-tab="freeze" id="tabFreeze">Freeze</button>
+  <button class="tab" data-tab="emissions" id="tabEmissions">Emissions</button>
+</div>
+
+<div class="content">
+
+<!-- CONNECT -->
+<div class="panel active" id="panel-connect">
+  <div class="conn-wrap">
+    <div class="conn-toggle">
+      <button class="conn-tab active" id="tabWifi">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+        WiFi
+      </button>
+      <button class="conn-tab" id="tabBt">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/></svg>
+        Bluetooth
+      </button>
+    </div>
+  </div>
+  <div class="card" id="wifiPanel">
+    <div class="card-title">WiFi Adapter Settings</div>
+    <div class="input-row"><span class="input-label">IP</span><input type="text" id="adapterIP" value="192.168.0.10"></div>
+    <div class="input-row"><span class="input-label">Port</span><input type="number" id="adapterPort" value="35000"></div>
+    <button class="btn btn-primary" id="connectBtn">Connect via WiFi</button>
+    <button class="btn btn-danger" id="disconnectBtn" style="display:none">Disconnect</button>
+  </div>
+  <div class="card" id="btPanel" style="display:none">
+    <div class="card-title">Bluetooth Adapter</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6">Tap below to scan for nearby ELM327 BLE adapters.</p>
+    <div id="btDeviceInfo" style="display:none;margin-bottom:12px">
+      <div class="bt-device-row"><span style="font-size:20px">&#128225;</span><div><div class="bt-name" id="btDeviceName">-</div><div class="bt-sub">ELM327 BLE</div></div></div>
+    </div>
+    <button class="btn btn-primary" id="btScanBtn">Scan for Bluetooth Adapter</button>
+    <button class="btn btn-danger" id="btDisconnectBtn" style="display:none">Disconnect</button>
+    <div class="demo-note" style="margin-top:12px">&#9888;&#65039; Web Bluetooth: Android Chrome/Edge only. Use WiFi on iPhone.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Connection Log</div>
+    <div class="log-box" id="logBox"><span class="log-info">Ready. Choose WiFi or Bluetooth and connect.</span></div>
+  </div>
+  <div class="demo-note">&#128295; No adapter yet? Try <strong>Demo Mode</strong> with simulated vehicle data.<br><br><button class="btn btn-outline" id="demoBtn">Enter Demo Mode</button></div>
+</div>
+
+<!-- LIVE -->
+<div class="panel" id="panel-live">
+  <div class="sec-hdr"><span class="sec-title">Live Data</span><button class="refresh-btn" id="refreshLiveBtn">&#8635; Refresh</button></div>
+  <div class="gauge-grid">
+    <div class="gauge-card"><div class="gauge-label">RPM</div><div class="gauge-value" id="rpm">-</div><div class="gauge-unit">rev/min</div><div class="gauge-bar"><div class="gauge-fill" id="rpmBar" style="width:0%"></div></div></div>
+    <div class="gauge-card"><div class="gauge-label">Speed</div><div class="gauge-value" id="speed">-</div><div class="gauge-unit">mph</div><div class="gauge-bar"><div class="gauge-fill" id="speedBar" style="width:0%"></div></div></div>
+    <div class="gauge-card"><div class="gauge-label">Coolant Temp</div><div class="gauge-value" id="coolant">-</div><div class="gauge-unit">&deg;F</div><div class="gauge-bar"><div class="gauge-fill" id="coolantBar" style="width:0%"></div></div></div>
+    <div class="gauge-card"><div class="gauge-label">Engine Load</div><div class="gauge-value" id="load">-</div><div class="gauge-unit">percent</div><div class="gauge-bar"><div class="gauge-fill" id="loadBar" style="width:0%"></div></div></div>
+  </div>
+  <div class="bat-card"><span style="font-size:26px">&#128267;</span><div><div class="bat-v" id="voltage">- V</div><div class="bat-s bat-good" id="batteryStatus">Connect to read</div></div></div>
+  <div class="card">
+    <div class="card-title">Additional Sensors</div>
+    <div class="freeze-row"><span class="freeze-key">Intake Air Temp</span><span class="freeze-val" id="iat">-</span></div>
+    <div class="freeze-row"><span class="freeze-key">Throttle Position</span><span class="freeze-val" id="throttle">-</span></div>
+    <div class="freeze-row"><span class="freeze-key">Fuel Level</span><span class="freeze-val" id="fuel">-</span></div>
+    <div class="freeze-row"><span class="freeze-key">O2 Sensor</span><span class="freeze-val" id="o2">-</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Vehicle Identification</div>
+    <div class="freeze-row"><span class="freeze-key">VIN</span><span class="freeze-val" id="vinDisplay" style="font-size:11px;word-break:break-all">-</span></div>
+    <button class="btn btn-outline" id="vinBtn" style="margin-top:12px">Read VIN</button>
+  </div>
+</div>
+
+<!-- CODES -->
+<div class="panel" id="panel-codes">
+  <div class="sec-hdr"><span class="sec-title">Trouble Codes</span><button class="refresh-btn" id="readDtcBtn">&#8635; Read</button></div>
+  <div id="dtcList"><div class="no-codes"><div class="no-codes-icon">&#128269;</div><div>Connect and tap Read to scan</div></div></div>
+  <button class="btn btn-danger" id="clearCodesBtn" style="display:none">Clear All Codes</button>
+</div>
+
+<!-- FREEZE -->
+<div class="panel" id="panel-freeze">
+  <div class="sec-hdr"><span class="sec-title">Freeze Frame</span><button class="refresh-btn" id="readFreezeBtn">&#8635; Read</button></div>
+  <div class="card" id="freezeCard"><div style="text-align:center;padding:18px 0;color:var(--muted);font-size:13px">Connect and tap Read to load data</div></div>
+</div>
+
+<!-- EMISSIONS -->
+<div class="panel" id="panel-emissions">
+  <div class="sec-hdr"><span class="sec-title">Emissions Readiness</span><button class="refresh-btn" id="readEmissionsBtn">&#8635; Check</button></div>
+  <div class="card">
+    <div class="card-title">NYS Inspection Readiness Monitors</div>
+    <div id="readinessRows"><div style="text-align:center;padding:18px 0;color:var(--muted);font-size:13px">Connect and tap Check to read monitors</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">MIL / Check Engine Light</div>
+    <div class="freeze-row"><span class="freeze-key">Check Engine Light</span><span class="freeze-val" id="milStatus" style="color:var(--muted)">-</span></div>
+    <div class="freeze-row"><span class="freeze-key">DTCs Present</span><span class="freeze-val" id="milDtcCount" style="color:var(--muted)">-</span></div>
+  </div>
+  <button class="btn btn-primary" id="checkEmBtn">Check Emissions Readiness</button>
+  <div class="demo-note" style="margin-top:12px">&#128269; <strong>Green</strong> = Ready &nbsp; <strong>Red</strong> = Not Ready &nbsp; <strong>Gray</strong> = N/A<br>All monitors must show Ready to pass NYS inspection.</div>
+</div>
+
+</div><!-- /content -->
+
+<!-- EMAIL BAR -->
+<div class="email-bar">
+  <div class="email-bar-inner">
+    <div class="credit"><a id="creditLink">Made by AFDavid <span>v1</span></a></div>
+    <button class="btn-email" id="emailBtn">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      EMAIL REPORT TO BRUCKNER EXPRESS
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+'use strict';
+
+// ── STATE ──
+var connected = false;
+var demoMode = false;
+var connType = 'wifi';
+var demoInterval = null;
+var socket = null;
+var btDevice = null;
+var btChar = null;
+var cmdQueue = [];
+var waiting = false;
+var btBuf = '';
+var passInput = '';
+var PASS = '783';
+var ELM_SVC  = '0000fff0-0000-1000-8000-00805f9b34fb';
+var ELM_NTFY = '0000fff1-0000-1000-8000-00805f9b34fb';
+var ELM_WR   = '0000fff2-0000-1000-8000-00805f9b34fb';
+
+// ── HELPERS ──
+function g(id) { return document.getElementById(id); }
+function showToast(msg) {
+  var t = g('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+function log(msg, cls) {
+  var box = g('logBox');
+  var sp = document.createElement('span');
+  sp.className = cls || '';
+  var d = new Date();
+  var ts = ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+':'+('0'+d.getSeconds()).slice(-2);
+  sp.textContent = '['+ts+'] '+msg;
+  box.appendChild(document.createElement('br'));
+  box.appendChild(sp);
+  box.scrollTop = box.scrollHeight;
+}
+function setStatus(s) {
+  g('statusDot').className = 'status-dot ' + (s === 'connected' ? 'connected' : s === 'connecting' ? 'connecting' : s === 'error' ? 'error' : '');
+  g('statusText').textContent = s === 'connected' ? 'Live' : s === 'connecting' ? 'Connecting...' : s === 'error' ? 'Error' : 'Off';
+  g('connectBtn').style.display = s === 'connected' ? 'none' : 'block';
+  g('disconnectBtn').style.display = s === 'connected' ? 'block' : 'none';
+  var bs = g('btScanBtn'), bd = g('btDisconnectBtn');
+  if (bs) bs.style.display = s === 'connected' ? 'none' : 'block';
+  if (bd) bd.style.display = s === 'connected' ? 'block' : 'none';
+}
+function updateGauge(id, barId, val, max) {
+  var el = g(id); el.textContent = val; el.classList.add('updating');
+  setTimeout(function() { el.classList.remove('updating'); }, 400);
+  g(barId).style.width = Math.min(100, (val/max)*100) + '%';
+}
+function updateVoltage(v) {
+  if (isNaN(v)) return;
+  g('voltage').textContent = v.toFixed(1) + ' V';
+  var s = g('batteryStatus');
+  if (v >= 12.6) { s.textContent = 'Good'; s.className = 'bat-s bat-good'; }
+  else if (v >= 12.0) { s.textContent = 'Fair - consider charging'; s.className = 'bat-s bat-warn'; }
+  else { s.textContent = 'Low - may need replacement'; s.className = 'bat-s bat-bad'; }
+}
+function resetValues() {
+  ['rpm','speed','coolant','load'].forEach(function(id) { g(id).textContent = '-'; });
+  ['rpmBar','speedBar','coolantBar','loadBar'].forEach(function(id) { g(id).style.width = '0%'; });
+  ['iat','throttle','fuel','o2'].forEach(function(id) { g(id).textContent = '-'; });
+  g('voltage').textContent = '- V';
+  g('batteryStatus').textContent = 'Connect to read';
+  g('batteryStatus').className = 'bat-s bat-good';
+  g('vinDisplay').textContent = '-';
+  g('milStatus').textContent = '-'; g('milStatus').style.color = 'var(--muted)';
+  g('milDtcCount').textContent = '-';
+  g('readinessRows').innerHTML = '<div style="text-align:center;padding:18px 0;color:var(--muted);font-size:13px">Connect and tap Check to read monitors</div>';
+}
+
+// ── POPUPS ──
+function showSafety() { g('popSafety').style.display = 'flex'; }
+function hideSafety() { g('popSafety').style.display = 'none'; g('popRole').style.display = 'flex'; }
+function selectCustomer() {
+  g('popRole').style.display = 'none';
+  document.body.classList.add('cust-mode');
+  switchTab('emissions');
+  showToast('Customer mode - Emissions only');
+}
+function selectTech() {
+  g('popRole').style.display = 'none';
+  passInput = ''; updatePassDisp(); g('passErr').textContent = '';
+  g('popPass').style.display = 'flex';
+}
+function updatePassDisp() {
+  var s = '';
+  for (var i = 0; i < 3; i++) {
+    s += (i < passInput.length ? '●' : '_');
+    if (i < 2) s += '   ';
+  }
+  g('passDisplay').textContent = s;
+}
+function numPress(d) {
+  if (passInput.length >= 3) return;
+  passInput += d; updatePassDisp();
+  if (passInput.length === 3) { setTimeout(checkPass, 150); }
+}
+function numDel() { passInput = passInput.slice(0,-1); updatePassDisp(); g('passErr').textContent = ''; }
+function numClr() { passInput = ''; updatePassDisp(); g('passErr').textContent = ''; }
+function checkPass() {
+  if (passInput === PASS) {
+    g('popPass').style.display = 'none';
+    document.body.classList.remove('cust-mode');
+    showToast('Technician access granted');
+  } else {
+    g('passErr').textContent = 'Incorrect passcode. Try again.';
+    var d = g('passDisplay'); d.style.borderColor = 'var(--red)';
+    setTimeout(function() { d.style.borderColor = 'var(--border)'; }, 1000);
+    passInput = ''; updatePassDisp();
+  }
+}
+function backToRole() {
+  g('popPass').style.display = 'none';
+  passInput = ''; updatePassDisp(); g('passErr').textContent = '';
+  g('popRole').style.display = 'flex';
+}
+
+// ── TABS ──
+function switchTab(name) {
+  var names = ['connect','live','codes','freeze','emissions'];
+  names.forEach(function(n, i) {
+    var tab = document.querySelector('[data-tab="'+n+'"]');
+    var panel = g('panel-'+n);
+    if (tab) tab.classList.toggle('active', n === name);
+    if (panel) panel.classList.toggle('active', n === name);
+  });
+}
+
+// ── CONNECTION ──
+function selectConnType(t) {
+  connType = t;
+  g('tabWifi').classList.toggle('active', t === 'wifi');
+  g('tabBt').classList.toggle('active', t === 'bt');
+  g('wifiPanel').style.display = t === 'wifi' ? 'block' : 'none';
+  g('btPanel').style.display = t === 'bt' ? 'block' : 'none';
+}
+
+function connectWifi() {
+  var ip = g('adapterIP').value.trim();
+  var port = g('adapterPort').value.trim();
+  if (!ip || !port) { showToast('Enter IP and port'); return; }
+  setStatus('connecting'); log('Connecting to '+ip+':'+port+'...', 'log-info');
+  try {
+    socket = new WebSocket('ws://'+ip+':'+port);
+    socket.onopen = function() {
+      connected = true; setStatus('connected');
+      log('Connected! Initializing...', 'log-ok'); showToast('Connected');
+      initELM();
+    };
+    socket.onerror = function() { log('Connection failed. Try Demo Mode.','log-err'); setStatus('error'); showToast('Connection failed'); };
+    socket.onclose = function() { if (connected) { log('Connection closed.','log-err'); disconnect(); } };
+  } catch(e) { log('Error: '+e.message,'log-err'); setStatus('error'); }
+}
+
+function sendCmd(cmd) {
+  return new Promise(function(resolve) { cmdQueue.push({cmd:cmd,resolve:resolve}); processQ(); });
+}
+function processQ() {
+  if (waiting || cmdQueue.length === 0) return;
+  var item = cmdQueue.shift(); waiting = true; var buf = '';
+  var orig = socket.onmessage;
+  socket.onmessage = function(e) {
+    buf += e.data;
+    if (buf.indexOf('>') >= 0) {
+      waiting = false; socket.onmessage = orig;
+      item.resolve(buf.replace('>','').trim()); processQ();
+    }
+  };
+  socket.send(item.cmd+'');
+}
+function initELM() {
+  sendCmd('ATZ').then(function() { return sendCmd('ATE0'); })
+    .then(function() { return sendCmd('ATL0'); })
+    .then(function() { return sendCmd('ATSP0'); })
+    .then(function() { log('ELM327 ready.','log-ok'); startPolling(); });
+}
+
+function connectBluetooth() {
+  if (!navigator.bluetooth) {
+    log('Web Bluetooth not supported in this browser.','log-err');
+    log('Use Chrome/Edge on Android. iPhone must use WiFi.','log-err');
+    showToast('Not supported - use WiFi on iPhone'); setStatus('error'); return;
+  }
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+    log('Bluetooth requires HTTPS. Host the app on a secure server.','log-err');
+    showToast('Needs HTTPS - use WiFi mode'); setStatus('error'); return;
+  }
+  setStatus('connecting'); log('Opening device picker...','log-info');
+  navigator.bluetooth.requestDevice({
+    filters:[{namePrefix:'ELM'},{namePrefix:'OBD'},{namePrefix:'OBDII'},{namePrefix:'Vgate'}],
+    optionalServices:[ELM_SVC,'0000ffe0-0000-1000-8000-00805f9b34fb']
+  }).catch(function() {
+    return navigator.bluetooth.requestDevice({
+      acceptAllDevices:true,
+      optionalServices:[ELM_SVC,'0000ffe0-0000-1000-8000-00805f9b34fb']
+    });
+  }).then(function(dev) {
+    btDevice = dev;
+    log('Found: '+(dev.name||'Unknown'),'log-ok');
+    g('btDeviceName').textContent = dev.name||'OBD Adapter';
+    g('btDeviceInfo').style.display = 'block';
+    return dev.gatt.connect();
+  }).then(function(server) {
+    log('GATT connected.','log-ok');
+    return server.getPrimaryService(ELM_SVC).catch(function() {
+      return server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
+    });
+  }).then(function(svc) {
+    return Promise.all([
+      svc.getCharacteristic(ELM_WR).catch(function() { return svc.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb'); }),
+      svc.getCharacteristic(ELM_NTFY).catch(function() { return svc.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb'); })
+    ]);
+  }).then(function(chars) {
+    btChar = chars[0];
+    var notify = chars[1];
+    return notify.startNotifications().then(function() {
+      notify.addEventListener('characteristicvaluechanged', function(e) {
+        btBuf += new TextDecoder().decode(e.target.value);
+        if (btBuf.indexOf('>') >= 0 && cmdQueue.length > 0 && waiting) {
+          var resp = btBuf; btBuf = ''; waiting = false;
+          var item = cmdQueue.shift(); item.resolve(resp.replace('>','').trim()); processBTQ();
+        }
+      });
+    });
+  }).then(function() {
+    connected = true; connType = 'bt'; setStatus('connected');
+    log('Bluetooth connected! Initializing...','log-ok'); showToast('Bluetooth connected');
+    var sc = function(cmd) { return new Promise(function(r) { cmdQueue.push({cmd:cmd,resolve:r}); processBTQ(); }); };
+    return sc('ATZ').then(function(){return sc('ATE0');}).then(function(){return sc('ATL0');}).then(function(){return sc('ATSP0');});
+  }).then(function() {
+    log('ELM327 BLE ready.','log-ok'); startPolling();
+  }).catch(function(e) {
+    setStatus('error');
+    var msg = (e.message||e.toString()).toLowerCase();
+    if (msg.indexOf('cancel') >= 0 || msg.indexOf('chose') >= 0) {
+      log('Scan cancelled.','log-err'); showToast('Scan cancelled'); setStatus('disconnected');
+    } else if (msg.indexOf('notfound') >= 0) {
+      log('No OBD adapter found. Make sure it is plugged in.','log-err'); showToast('No adapter found');
+    } else {
+      log('BLE error: '+e.message,'log-err'); showToast('Bluetooth failed - try WiFi');
+    }
+  });
+}
+function processBTQ() {
+  if (waiting || cmdQueue.length === 0) return;
+  var item = cmdQueue[0]; waiting = true;
+  btChar.writeValue(new TextEncoder().encode(item.cmd+''));
+}
+
+function disconnect() {
+  if (socket) { socket.close(); socket = null; }
+  if (btDevice && btDevice.gatt.connected) btDevice.gatt.disconnect();
+  if (demoInterval) { clearInterval(demoInterval); demoInterval = null; }
+  connected = false; demoMode = false; setStatus('disconnected'); resetValues();
+  log('Disconnected.','log-err');
+}
+
+// ── LIVE POLLING ──
+function startPolling() { pollAll(); demoInterval = setInterval(pollAll, 2000); }
+function hexB(r) { return r.replace(/[^0-9A-Fa-f ]/g,'').trim().split(/\s+/).filter(function(b){return b.length===2;}).map(function(b){return parseInt(b,16);}); }
+function parseRPM(r) { var b=hexB(r); return b.length<4?null:((b[2]*256)+b[3])/4; }
+function parseSpd(r) { var b=hexB(r); return b.length>=3?b[2]:null; }
+function parseCool(r){ var b=hexB(r); return b.length>=3?b[2]-40:null; }
+function parseLoad(r){ var b=hexB(r); return b.length>=3?b[2]*100/255:null; }
+function parseByte(r,off,sc){ var b=hexB(r); return b.length>=3?(b[2]+(off||0))*(sc||1):null; }
+function pollAll() {
+  if (!connected || demoMode) return;
+  var send = connType==='bt' ? function(c){return new Promise(function(r){cmdQueue.push({cmd:c,resolve:r});processBTQ();});} : sendCmd;
+  if (connType==='wifi' && (!socket||socket.readyState!==1)) return;
+  send('010C').then(function(r){var v=parseRPM(r);if(v!==null)updateGauge('rpm','rpmBar',Math.round(v),8000);});
+  send('010D').then(function(r){var v=parseSpd(r);if(v!==null)updateGauge('speed','speedBar',Math.round(v*0.621),120);});
+  send('0105').then(function(r){var v=parseCool(r);if(v!==null)updateGauge('coolant','coolantBar',Math.round(v*9/5+32),250);});
+  send('0104').then(function(r){var v=parseLoad(r);if(v!==null)updateGauge('load','loadBar',Math.round(v),100);});
+  send('ATRV').then(function(r){updateVoltage(parseFloat(r));});
+  send('010F').then(function(r){var v=parseByte(r,-40);if(v!==null)g('iat').textContent=Math.round(v*9/5+32)+' F';});
+  send('0111').then(function(r){var v=parseByte(r,0,100/255);if(v!==null)g('throttle').textContent=Math.round(v)+'%';});
+  send('012F').then(function(r){var v=parseByte(r,0,100/255);if(v!==null)g('fuel').textContent=Math.round(v)+'%';});
+}
+
+// ── VIN ──
+function readVIN() {
+  if (!connected && !demoMode) { showToast('Connect first'); return; }
+  if (demoMode) { g('vinDisplay').textContent='1HGBH41JXMN109186 (Demo)'; showToast('VIN loaded'); return; }
+  log('Reading VIN...','log-info');
+  var send = connType==='bt'?function(c){return new Promise(function(r){cmdQueue.push({cmd:c,resolve:r});processBTQ();});}:sendCmd;
+  send('0902').then(function(raw) {
+    var bytes = hexB(raw); var vin = '';
+    for (var i=0;i<bytes.length;i++){if(bytes[i]>=32&&bytes[i]<=126)vin+=String.fromCharCode(bytes[i]);}
+    vin = vin.replace(/[^A-HJ-NPR-Z0-9]/gi,'').slice(-17);
+    g('vinDisplay').textContent = vin||raw.trim();
+    log('VIN: '+(vin||'see display'),'log-ok');
+  }).catch(function(e){log('VIN error: '+e.message,'log-err');});
+}
+
+// ── DTCs ──
+function readDTCs() {
+  if (!connected && !demoMode) { showToast('Connect first'); return; }
+  if (demoMode) { showDemoDTCs(); return; }
+  log('Reading DTCs...','log-info');
+  var send = connType==='bt'?function(c){return new Promise(function(r){cmdQueue.push({cmd:c,resolve:r});processBTQ();});}:sendCmd;
+  send('03').then(function(raw){
+    var bytes=hexB(raw); var codes=[];
+    for(var i=0;i<bytes.length-1;i+=2){
+      if(bytes[i]===0&&bytes[i+1]===0)continue;
+      var p=['P','C','B','U'][(bytes[i]>>6)&3];
+      codes.push(p+((bytes[i]&0x3F).toString(16).toUpperCase().padStart(2,'0'))+bytes[i+1].toString(16).toUpperCase().padStart(2,'0'));
+    }
+    renderDTCs(codes.map(function(c){return{code:c,desc:dtcDesc(c),sev:'Check Required'};}));
+  });
+}
+function renderDTCs(codes) {
+  var list=g('dtcList'); var btn=g('clearCodesBtn');
+  if(!codes.length){list.innerHTML='<div class="no-codes"><div class="no-codes-icon">&#9989;</div><div>No trouble codes found</div></div>';btn.style.display='none';}
+  else{list.innerHTML=codes.map(function(c){return'<div class="dtc-item"><div><div class="dtc-code">'+c.code+'</div><div class="dtc-sev">'+c.sev+'</div></div><div class="dtc-desc">'+c.desc+'</div></div>';}).join('');btn.style.display='block';}
+}
+function clearCodes() {
+  if(!connected&&!demoMode)return;
+  if(!confirm('Clear all trouble codes?'))return;
+  if(!demoMode){var send=connType==='bt'?function(c){return new Promise(function(r){cmdQueue.push({cmd:c,resolve:r});processBTQ();});}:sendCmd;send('04');}
+  log('Codes cleared.','log-ok'); showToast('Codes cleared'); renderDTCs([]);
+}
+
+// ── FREEZE ──
+function readFreeze() {
+  if(!connected&&!demoMode){showToast('Connect first');return;}
+  if(demoMode){showDemoFreeze();return;}
+  var send=connType==='bt'?function(c){return new Promise(function(r){cmdQueue.push({cmd:c,resolve:r});processBTQ();});}:sendCmd;
+  var data={};
+  send('020C00').then(function(r){data['RPM']=(parseRPM(r)||'-')+' rpm';return send('020D00');})
+  .then(function(r){var v=parseSpd(r);data['Speed']=v!==null?Math.round(v*0.621)+' mph':'-';return send('020500');})
+  .then(function(r){var v=parseCool(r);data['Coolant Temp']=v!==null?Math.round(v*9/5+32)+' F':'-';return send('020400');})
+  .then(function(r){var v=parseLoad(r);data['Engine Load']=v!==null?Math.round(v)+'%':'-';renderFreeze(data);});
+}
+function renderFreeze(data) {
+  var html='<div class="card-title">Snapshot at fault time</div>';
+  Object.keys(data).forEach(function(k){html+='<div class="freeze-row"><span class="freeze-key">'+k+'</span><span class="freeze-val">'+data[k]+'</span></div>';});
+  g('freezeCard').innerHTML=html;
+}
+
+// ── EMISSIONS ──
+function readReadiness() {
+  if(!connected&&!demoMode){showToast('Connect first');return;}
+  if(demoMode){showDemoReadiness();return;}
+  log('Reading emissions monitors...','log-info');
+  var send=connType==='bt'?function(c){return new Promise(function(r){cmdQueue.push({cmd:c,resolve:r});processBTQ();});}:sendCmd;
+  send('0101').then(function(raw){
+    var b=hexB(raw);if(b.length<4)return;
+    var milOn=!!(b[2]&0x80); var dtcCnt=b[2]&0x7F;
+    var avail=b.length>5?b[5]:0; var ready=b.length>6?b[6]:0;
+    var monitors=[{name:'Catalyst (CAT)',bit:0},{name:'Heated Catalyst',bit:1},{name:'EVAP System',bit:2},{name:'Secondary Air',bit:3},{name:'A/C Refrigerant',bit:4},{name:'O2 Sensor',bit:5},{name:'O2 Sensor Heater',bit:6},{name:'EGR System',bit:7}];
+    var ms=g('milStatus');
+    ms.textContent=milOn?'ON - Check Engine Light Active':'OFF - No MIL';
+    ms.style.color=milOn?'var(--red)':'var(--green)';
+    g('milDtcCount').textContent=dtcCnt+' code'+(dtcCnt!==1?'s':'');
+    var rows=monitors.map(function(m){
+      var app=!!(avail&(1<<m.bit));
+      var comp=app?!(ready&(1<<m.bit)):null;
+      return readinessRow(m.name,app,comp);
+    }).join('');
+    g('readinessRows').innerHTML=rows;
+    log('Emissions read.','log-ok'); showToast('Readiness loaded');
+  }).catch(function(e){log('Emissions error: '+e.message,'log-err');});
+}
+function readinessRow(name, applicable, complete) {
+  var dot,label,color;
+  if(!applicable){dot='&#9898;';color='#aaa';label='N/A';}
+  else if(complete){dot='&#9899;';color='var(--green)';label='Ready &#10003;';}
+  else{dot='&#9899;';color='var(--red)';label='Not Ready';}
+  return '<div class="freeze-row"><span class="freeze-key">'+name+'</span><span style="display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:12px;color:'+color+'"><span style="font-size:10px;color:'+color+'">'+dot+'</span>'+label+'</span></div>';
+}
+
+// ── DEMO ──
+function startDemo() {
+  demoMode=true;connected=true;setStatus('connected');
+  log('Demo mode - simulated vehicle data','log-info');showToast('Demo mode on');
+  switchTab('live'); runDemo();
+}
+function runDemo() {
+  var tick=0;
+  demoInterval=setInterval(function(){
+    tick++;
+    updateGauge('rpm','rpmBar',Math.round(800+Math.sin(tick/8)*600+Math.random()*200),8000);
+    updateGauge('speed','speedBar',Math.max(0,Math.round(35+Math.sin(tick/15)*30)),120);
+    updateGauge('coolant','coolantBar',Math.round(195+Math.sin(tick/30)*8),250);
+    updateGauge('load','loadBar',Math.round(25+Math.sin(tick/10)*20+Math.random()*5),100);
+    updateVoltage(parseFloat((12.6+Math.sin(tick/20)*0.3).toFixed(1)));
+    g('iat').textContent='72 F'; g('throttle').textContent=Math.round(15+Math.sin(tick/10)*10)+'%';
+    g('fuel').textContent='68%'; g('o2').textContent='0.44 V';
+  },1000);
+}
+function showDemoDTCs(){renderDTCs([{code:'P0300',desc:'Random/Multiple Cylinder Misfire Detected',sev:'Emissions & Driveability'},{code:'P0420',desc:'Catalyst System Efficiency Below Threshold (Bank 1)',sev:'Emissions'},{code:'P0171',desc:'System Too Lean (Bank 1)',sev:'Fuel System'}]);}
+function showDemoFreeze(){renderFreeze({'RPM':'1,240 rpm','Speed':'28 mph','Coolant Temp':'198 F','Engine Load':'42%','Throttle':'18%','Fuel Trim':'+12.5%','Intake Air Temp':'68 F','MAP Sensor':'98 kPa'});}
+function showDemoReadiness(){
+  g('milStatus').textContent='OFF - No MIL'; g('milStatus').style.color='var(--green)';
+  g('milDtcCount').textContent='0 codes';
+  var monitors=[{name:'Catalyst (CAT)',app:true,comp:true},{name:'Heated Catalyst',app:false,comp:null},{name:'EVAP System',app:true,comp:false},{name:'Secondary Air',app:false,comp:null},{name:'A/C Refrigerant',app:false,comp:null},{name:'O2 Sensor',app:true,comp:true},{name:'O2 Sensor Heater',app:true,comp:true},{name:'EGR System',app:true,comp:false}];
+  g('readinessRows').innerHTML=monitors.map(function(m){return readinessRow(m.name,m.app,m.comp);}).join('');
+  showToast('Demo readiness loaded');
+}
+
+// ── DTC DESCRIPTIONS ──
+function dtcDesc(code) {
+  var db={'P0100':'Mass Air Flow sensor malfunction','P0101':'MAF sensor range/performance','P0110':'Intake Air Temp sensor malfunction','P0115':'Coolant Temp sensor malfunction','P0120':'Throttle Position sensor malfunction','P0130':'O2 Sensor Circuit (Bank 1, Sensor 1)','P0171':'System Too Lean (Bank 1)','P0172':'System Too Rich (Bank 1)','P0300':'Random/Multiple Cylinder Misfire','P0301':'Cylinder 1 Misfire','P0302':'Cylinder 2 Misfire','P0303':'Cylinder 3 Misfire','P0304':'Cylinder 4 Misfire','P0325':'Knock Sensor malfunction','P0335':'Crankshaft Position Sensor malfunction','P0340':'Camshaft Position Sensor malfunction','P0400':'EGR Flow malfunction','P0420':'Catalyst System Efficiency Below Threshold (Bank 1)','P0430':'Catalyst System Efficiency Below Threshold (Bank 2)','P0440':'EVAP System malfunction','P0442':'EVAP System Small Leak','P0455':'EVAP System Large Leak','P0500':'Vehicle Speed Sensor malfunction','P0505':'Idle Control System malfunction','P0700':'Transmission Control System malfunction'};
+  return db[code]||'Unknown code - look up '+code;
+}
+
+// ── EMAIL REPORT ──
+function emailReport() {
+  var now=new Date();
+  var dateStr=now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  var timeStr=now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var connStatus=connected?(demoMode?'Demo Mode':connType==='bt'?'Live - Bluetooth':'Live - WiFi'):'Not Connected';
+  var dtcEls=document.querySelectorAll('.dtc-item');
+  var dtcText=dtcEls.length===0?'  No trouble codes detected.':'';
+  dtcEls.forEach(function(el){dtcText+='
+  '+((el.querySelector('.dtc-code')||{}).textContent||'')+' - '+((el.querySelector('.dtc-desc')||{}).textContent||'');});
+  var fRows=document.querySelectorAll('#freezeCard .freeze-row');
+  var freezeText=fRows.length===0?'  No freeze frame data.':'';
+  fRows.forEach(function(row){freezeText+='
+  '+((row.querySelector('.freeze-key')||{}).textContent||'')+': '+((row.querySelector('.freeze-val')||{}).textContent||'');});
+  var milOn=(g('milStatus').textContent||'').indexOf('ON')>=0;
+  var milLine=milOn?'  CHECK ENGINE LIGHT: ON (ACTIVE)':'  CHECK ENGINE LIGHT: OFF';
+  var emRows=[];
+  document.querySelectorAll('#readinessRows .freeze-row').forEach(function(row){
+    var mon=((row.querySelector('.freeze-key')||{}).textContent||'').trim();
+    var statusEl=row.querySelector('span[style]');
+    var statusTxt=statusEl?statusEl.textContent.trim():'-';
+    var badge='[  N/A   ]';
+    if(statusTxt.indexOf('Ready')>=0&&statusTxt.indexOf('Not')<0)badge='[READY  v]';
+    else if(statusTxt.indexOf('Not Ready')>=0)badge='[NOT READY]';
+    emRows.push('  '+mon+'                    '.slice(0,Math.max(0,26-mon.length))+badge);
+  });
+  var notReady=emRows.filter(function(r){return r.indexOf('NOT READY')>=0;}).length;
+  var readyCount=emRows.filter(function(r){return r.indexOf('READY  v')>=0;}).length;
+  var naCount=emRows.filter(function(r){return r.indexOf('N/A')>=0;}).length;
+  var outlook=emRows.length===0?'  Emissions not checked.':(!milOn&&notReady===0?'  >> OUTLOOK: LIKELY TO PASS NYS INSPECTION':'  >> OUTLOOK: MAY NOT PASS - '+notReady+' monitor(s) NOT READY'+(milOn?' + MIL ON':''));
+  var LINE='================================================';
+  var DASH='------------------------------------------------';
+  var body=[
+    LINE,'  BRUCKNER EXPRESS AUTO REPAIR',
+    '  783 Bruckner Blvd, Bronx, NY 10455',
+    '  Tel: 347-597-4110','  OBD2 DIAGNOSTIC REPORT',LINE,
+    '  Date:       '+dateStr,'  Time:       '+timeStr,
+    '  VIN:        '+g('vinDisplay').textContent,
+    '  Connection: '+connStatus,LINE,'',LINE,
+    '  LIVE DATA SNAPSHOT',LINE,
+    '  Engine RPM ............. '+g('rpm').textContent+' rev/min',
+    '  Vehicle Speed .......... '+g('speed').textContent+' mph',
+    '  Coolant Temp ........... '+g('coolant').textContent+' F',
+    '  Engine Load ............ '+g('load').textContent+'%',
+    '  Battery Voltage ........ '+g('voltage').textContent,
+    '  Battery Status ......... '+g('batteryStatus').textContent,
+    '  Intake Air Temp ........ '+g('iat').textContent,
+    '  Throttle Position ...... '+g('throttle').textContent,
+    '  Fuel Level ............. '+g('fuel').textContent,
+    '  O2 Sensor .............. '+g('o2').textContent,
+    LINE,'',LINE,'  TROUBLE CODES (DTCs)',LINE,dtcText,LINE,'',
+    LINE,'  FREEZE FRAME DATA',LINE,freezeText,LINE,'',
+    LINE,'  EMISSIONS READINESS MONITORS',LINE,
+    milLine,'  DTCs Stored: '+g('milDtcCount').textContent,DASH,
+    '  MONITOR                         STATUS',DASH
+  ].concat(emRows).concat([DASH,outlook,'  ('+readyCount+' Ready | '+notReady+' Not Ready | '+naCount+' N/A)',LINE,'',LINE,
+    '  Report: '+dateStr+' at '+timeStr,
+    '  Bruckner Express Auto Repair OBD2 App',
+    '  347-597-4110 | 783 Bruckner Blvd, Bronx NY',LINE]).join('
+');
+  var subject='Bruckner Express - OBD2 Report | '+dateStr;
+  window.location.href='mai'+'lto:brucknerexpressautorepair@gmail.com?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  showToast('Opening email app...');
+}
+
+// ── EVENT LISTENERS ──
+window.addEventListener('DOMContentLoaded', function() {
+  showSafety();
+  g('btnSafety').addEventListener('click', hideSafety);
+  g('btnCust').addEventListener('click', selectCustomer);
+  g('btnTech').addEventListener('click', selectTech);
+  g('btnBack').addEventListener('click', backToRole);
+  ['n1','n2','n3','n4','n5','n6','n7','n8','n9','n0'].forEach(function(id) {
+    g(id).addEventListener('click', function() { numPress(id.slice(1)); });
+  });
+  g('nDel').addEventListener('click', numDel);
+  g('nClr').addEventListener('click', numClr);
+  g('tabWifi').addEventListener('click', function() { selectConnType('wifi'); });
+  g('tabBt').addEventListener('click', function() { selectConnType('bt'); });
+  g('connectBtn').addEventListener('click', connectWifi);
+  g('disconnectBtn').addEventListener('click', disconnect);
+  g('btScanBtn').addEventListener('click', connectBluetooth);
+  g('btDisconnectBtn').addEventListener('click', disconnect);
+  g('demoBtn').addEventListener('click', startDemo);
+  g('refreshLiveBtn').addEventListener('click', function() { if(demoMode)return; if(!connected){showToast('Connect first');return;} pollAll(); });
+  g('readDtcBtn').addEventListener('click', readDTCs);
+  g('clearCodesBtn').addEventListener('click', clearCodes);
+  g('readFreezeBtn').addEventListener('click', readFreeze);
+  g('readEmissionsBtn').addEventListener('click', readReadiness);
+  g('checkEmBtn').addEventListener('click', readReadiness);
+  g('vinBtn').addEventListener('click', readVIN);
+  g('emailBtn').addEventListener('click', emailReport);
+  g('creditLink').addEventListener('click', function(e) { e.preventDefault(); window.location.href='mai'+'lto:alberto@albertodavid.com?subject=Bruckner Express OBD2 App'; });
+  document.querySelectorAll('.tab').forEach(function(tab) {
+    tab.addEventListener('click', function() { switchTab(tab.getAttribute('data-tab')); });
+  });
+});
+
+})();
+</script>
+</body>
+</html>
