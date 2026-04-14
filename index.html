@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bruckner OBD2</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=Lobster+Two:ital,wght@0,700;1,700&family=Righteous&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+--navy:    #0a1628;
+--blue:    #0e3d8a;
+--blue2:   #1455b5;
+--yellow:  #f5c200;
+--yellow2: #ffe033;
+--white:   #ffffff;
+--offwhite:#f5f7fc;
+--border:  #d8e2f5;
+--text:    #0a1628;
+--muted:   #6478a0;
+--red:     #c0392b;
+--green:   #1a7a3e;
+--amber:   #b06a00;
+--radius:  14px;
+--shadow:  0 1px 4px rgba(10,22,40,0.08), 0 4px 16px rgba(10,22,40,0.06);
+}
+
+body {
+font-family: 'Barlow', sans-serif;
+background: var(--offwhite);
+color: var(--text);
+min-height: 100vh;
+padding-bottom: 84px;
+}
+
+/* ── HEADER ── */
+header {
+background: var(--blue);
+position: sticky; top: 0; z-index: 100;
+}
+
+.header-topbar {
+background: var(--yellow);
+height: 5px;
+}
+
+.header-main {
+display: flex;
+align-items: stretch;
+min-height: 72px;
+}
+
+.header-photo {
+width: 62px;
+flex-shrink: 0;
+overflow: hidden;
+position: relative;
+}
+.header-photo img {
+width: 100%;
+height: 100%;
+object-fit: cover;
+object-position: center top;
+filter: grayscale(20%) contrast(1.05);
+}
+.header-photo::after {
+content: '';
+position: absolute;
+inset: 0;
+background: linear-gradient(90deg, transparent 60%, var(--blue) 100%);
+}
+
+.header-text {
+flex: 1;
+padding: 10px 14px 8px;
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+text-align: center;
+}
+
+/* SWAPPED: shop-name-top is now the large condensed name */
+.shop-name-top {
+font-family: 'Lobster Two', cursive;
+font-size: 24px;
+font-weight: 700;
+color: var(--yellow);
+letter-spacing: 0px;
+line-height: 1.1;
+text-transform: none;
+}
+.shop-name-top span { color: var(--yellow); }
+
+/* SWAPPED: shop-name-main is now the smaller label */
+.shop-name-main {
+font-family: 'Lobster Two', cursive;
+font-size: 16px;
+font-weight: 700;
+color: var(--yellow);
+letter-spacing: 0px;
+text-transform: none;
+line-height: 1.1;
+margin-top: 1px;
+}
+
+.shop-address {
+font-size: 10px;
+color: #ffffff;
+font-family: 'Lobster Two', cursive;
+font-weight: 700;
+margin-top: 2px;
+letter-spacing: 0.3px;
+}
+
+.header-sub {
+font-size: 10px;
+color: #ffffff;
+font-family: 'Lobster Two', cursive;
+font-weight: 700;
+margin-top: 2px;
+letter-spacing: 0.3px;
+}
+
+.header-right {
+display: flex;
+flex-direction: column;
+align-items: flex-end;
+justify-content: center;
+padding: 10px 14px;
+gap: 4px;
+}
+.status-badge {
+display: flex;
+align-items: center;
+gap: 5px;
+font-size: 11px;
+color: rgba(255,255,255,0.55);
+font-family: 'DM Mono', monospace;
+}
+.status-dot {
+width: 7px; height: 7px;
+border-radius: 50%;
+background: rgba(255,255,255,0.2);
+flex-shrink: 0;
+transition: background 0.3s;
+}
+.status-dot.connected  { background: #2ecc71; box-shadow: 0 0 0 3px rgba(46,204,113,0.2); }
+.status-dot.connecting { background: var(--yellow); animation: blink 1s infinite; }
+.status-dot.error      { background: #e74c3c; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.phone-badge {
+font-family: 'DM Mono', monospace;
+font-size: 10px;
+color: var(--yellow);
+letter-spacing: 0.5px;
+}
+
+/* Services ticker */
+.services-ticker {
+background: var(--yellow);
+padding: 5px 0;
+overflow: hidden;
+white-space: nowrap;
+}
+.ticker-inner {
+display: inline-block;
+animation: ticker 18s linear infinite;
+font-family: 'Barlow Condensed', sans-serif;
+font-size: 12px;
+font-weight: 700;
+letter-spacing: 1.5px;
+text-transform: uppercase;
+color: var(--navy);
+}
+@keyframes ticker {
+0%   { transform: translateX(100vw); }
+100% { transform: translateX(-100%); }
+}
+
+/* ── TABS ── */
+.tabs {
+display: flex;
+background: var(--white);
+border-bottom: 3px solid var(--yellow);
+padding: 0 12px;
+gap: 0;
+}
+.tab {
+padding: 11px 12px;
+font-size: 13px;
+font-weight: 600;
+font-family: 'Barlow', sans-serif;
+border: none; background: transparent;
+color: var(--muted); cursor: pointer;
+transition: all 0.18s;
+border-bottom: 3px solid transparent;
+margin-bottom: -3px;
+letter-spacing: 0.2px;
+}
+.tab.active { color: var(--navy); border-bottom-color: var(--navy); }
+
+/* ── CONTENT ── */
+.content { padding: 14px; max-width: 480px; margin: 0 auto; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── CARDS ── */
+.card {
+background: var(--white);
+border-radius: var(--radius);
+border: 1px solid var(--border);
+box-shadow: var(--shadow);
+padding: 16px;
+margin-bottom: 12px;
+}
+.card-title {
+font-size: 10px; font-weight: 700;
+letter-spacing: 1.2px; text-transform: uppercase;
+color: var(--muted); margin-bottom: 13px;
+}
+
+/* ── INPUTS ── */
+.input-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+.input-label { font-size: 13px; color: var(--muted); width: 42px; flex-shrink: 0; }
+input[type="text"], input[type="number"] {
+flex: 1; border: 1.5px solid var(--border); border-radius: 9px;
+padding: 10px 12px; font-size: 14px; font-family: 'DM Mono', monospace;
+background: var(--offwhite); color: var(--text); outline: none; transition: border 0.2s;
+}
+input:focus { border-color: var(--blue); background: var(--white); }
+
+/* ── BUTTONS ── */
+.btn {
+width: 100%; padding: 14px; border-radius: 11px; border: none;
+font-size: 14px; font-weight: 700; font-family: 'Barlow', sans-serif;
+cursor: pointer; transition: all 0.18s; letter-spacing: 0.3px;
+}
+.btn-primary { background: var(--blue); color: #fff; box-shadow: 0 2px 10px rgba(20,85,181,0.25); }
+.btn-primary:hover { background: var(--blue2); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { background: var(--border); color: var(--muted); box-shadow: none; cursor: not-allowed; }
+.btn-danger { background: #fdf0ef; color: var(--red); border: 1px solid #f5c9c5; margin-top: 10px; }
+.btn-danger:hover { background: #fbe0de; }
+.btn-outline { background: var(--white); color: var(--blue); border: 1.5px solid var(--border); margin-top: 10px; }
+.btn-yellow {
+background: var(--blue); color: var(--yellow);
+display: flex; align-items: center; justify-content: center; gap: 5px;
+font-family: 'Righteous', cursive; font-size: 11px; font-weight: 400;
+letter-spacing: 0.3px; text-transform: none;
+padding: 7px 10px;
+box-shadow: 0 2px 8px rgba(14,61,138,0.3);
+}
+.btn-yellow:hover { background: var(--blue2); }
+.btn-yellow:active { transform: scale(0.98); }
+
+/* ── EMAIL BAR ── */
+.email-bar {
+position: fixed; bottom: 0; left: 0; right: 0;
+background: #ffffff;
+padding: 6px 14px calc(6px + env(safe-area-inset-bottom));
+z-index: 200;
+border-top: 3px solid var(--yellow);
+}
+.email-bar-inner { max-width: 480px; margin: 0 auto; }
+
+/* ── CONN TOGGLE ── */
+.conn-toggle-wrap { display: flex; justify-content: center; margin-bottom: 14px; }
+.conn-toggle {
+display: flex; background: var(--offwhite);
+border: 1.5px solid var(--border); border-radius: 11px; padding: 3px; gap: 3px;
+}
+.conn-tab {
+display: flex; align-items: center; gap: 6px;
+padding: 9px 18px; border-radius: 9px; border: none;
+font-size: 13px; font-weight: 600; font-family: 'Barlow', sans-serif;
+cursor: pointer; background: transparent; color: var(--muted); transition: all 0.2s;
+}
+.conn-tab.active { background: var(--blue); color: #fff; box-shadow: 0 1px 6px rgba(20,85,181,0.22); }
+
+.bt-device-row {
+display: flex; align-items: center; gap: 12px;
+background: var(--offwhite); border: 1.5px solid var(--border); border-radius: 10px; padding: 12px;
+}
+.bt-device-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.bt-device-sub  { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+
+/* ── GAUGES ── */
+.gauge-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.gauge-card {
+background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius);
+padding: 14px 13px; box-shadow: var(--shadow); position: relative; overflow: hidden; transition: transform 0.2s;
+}
+.gauge-card::before {
+content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--yellow);
+}
+.gauge-card:active { transform: scale(0.97); }
+.gauge-label { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+.gauge-value { font-family: 'DM Mono', monospace; font-size: 30px; font-weight: 400; color: var(--navy); line-height: 1; }
+.gauge-unit  { font-size: 10px; color: var(--muted); margin-top: 3px; font-family: 'DM Mono', monospace; }
+.gauge-bar   { height: 3px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+.gauge-fill  { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--blue), var(--yellow)); transition: width 0.5s ease; }
+
+/* ── BATTERY ── */
+.battery-card {
+background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius);
+padding: 14px 16px; box-shadow: var(--shadow);
+display: flex; align-items: center; gap: 14px; margin-bottom: 10px;
+}
+.battery-icon { font-size: 26px; }
+.battery-info { flex: 1; }
+.battery-voltage { font-family: 'DM Mono', monospace; font-size: 26px; font-weight: 400; color: var(--navy); }
+.battery-status { font-size: 12px; margin-top: 2px; }
+.battery-status.good { color: var(--green); }
+.battery-status.warn { color: var(--amber); }
+.battery-status.bad  { color: var(--red); }
+
+/* ── DTCs ── */
+.dtc-item {
+background: var(--white); border: 1.5px solid var(--border);
+border-left: 4px solid var(--red); border-radius: 11px;
+padding: 13px; margin-bottom: 10px; box-shadow: var(--shadow);
+display: flex; align-items: flex-start; gap: 11px;
+}
+.dtc-code { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500; color: var(--red); min-width: 56px; }
+.dtc-desc { font-size: 13px; color: var(--text); line-height: 1.5; }
+.dtc-severity { font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+
+.no-codes { text-align: center; padding: 38px 20px; color: var(--muted); }
+.no-codes-icon { font-size: 34px; margin-bottom: 10px; }
+.no-codes-text { font-size: 14px; }
+
+/* ── FREEZE ── */
+.freeze-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.freeze-row:last-child { border-bottom: none; }
+.freeze-key { font-size: 13px; color: var(--muted); }
+.freeze-val { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--navy); }
+
+/* ── LOG ── */
+.log-box {
+background: var(--offwhite); border: 1.5px solid var(--border); border-radius: 10px;
+padding: 11px 13px; font-family: 'DM Mono', monospace; font-size: 11px;
+color: var(--muted); line-height: 1.9; max-height: 140px; overflow-y: auto;
+}
+.log-entry { display: block; }
+.log-entry.ok   { color: var(--green); }
+.log-entry.err  { color: var(--red); }
+.log-entry.info { color: var(--blue); }
+
+/* ── TOAST ── */
+.toast {
+position: fixed; bottom: 78px; left: 50%;
+transform: translateX(-50%) translateY(50px);
+background: var(--navy); color: #fff;
+padding: 10px 20px; border-radius: 100px;
+font-size: 13px; font-weight: 600;
+transition: transform 0.3s ease; z-index: 999;
+white-space: nowrap; border: 2px solid var(--yellow);
+font-family: 'Barlow', sans-serif;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 13px; }
+.section-title { font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 800; color: var(--navy); text-transform: uppercase; letter-spacing: 0.3px; }
+.refresh-btn {
+font-size: 16px; color: #ffffff; background: var(--red); border: none;
+cursor: pointer; padding: 8px 16px; border-radius: 8px; font-family: 'Barlow', sans-serif;
+font-weight: 700; letter-spacing: 0.4px;
+box-shadow: 0 2px 8px rgba(192,57,43,0.35);
+}
+.refresh-btn:hover { background: #a93226; color: #ffffff; }
+
+.updating { animation: flash 0.4s ease; }
+@keyframes flash { 0%{opacity:0.15} 100%{opacity:1} }
+
+.demo-note {
+text-align: center; font-size: 11px; color: var(--muted);
+margin-top: 12px; padding: 12px;
+background: #fffce6; border-radius: 11px;
+border: 1px solid #f0d840; line-height: 1.6;
+}
+
+/* ── DRIVING WARNING POPUP ── */
+.popup-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.88);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.popup-box {
+  background: var(--white); border-radius: 18px;
+  padding: 28px 22px 22px; max-width: 340px; width: 100%;
+  text-align: center; box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  border-top: 6px solid var(--yellow);
+  border-bottom: 6px solid var(--blue);
+}
+.popup-icon { font-size: 52px; margin-bottom: 12px; }
+.popup-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 26px; font-weight: 800;
+  color: var(--red); text-transform: uppercase;
+  letter-spacing: 1px; margin-bottom: 4px;
+}
+.popup-subtitle {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; font-weight: 700;
+  color: var(--blue); text-transform: uppercase;
+  letter-spacing: 3px; margin-bottom: 14px;
+}
+.popup-msg {
+  font-size: 14px; color: var(--text);
+  line-height: 1.6; margin-bottom: 22px;
+}
+.popup-msg strong { color: var(--navy); }
+.btn-popup {
+  width: 100%; padding: 16px; border-radius: 11px; border: none;
+  background: var(--blue); color: #fff;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 20px; font-weight: 800; letter-spacing: 1px;
+  text-transform: uppercase; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(20,85,181,0.4);
+  margin-top: 4px;
+}
+.btn-popup:hover { background: var(--blue2); }
+.btn-popup:active { transform: scale(0.98); }
+
+
+/* ── ROLE SELECTION POPUP ── */
+.popup-role-overlay {
+  position: fixed; inset: 0; z-index: 9998;
+  background: rgba(0,0,0,0.88);
+  display: none; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.popup-role-box {
+  background: var(--white); border-radius: 18px;
+  padding: 28px 22px 24px; max-width: 340px; width: 100%;
+  text-align: center; box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  border-top: 6px solid var(--blue);
+  border-bottom: 6px solid var(--yellow);
+}
+.role-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
+.btn-role {
+  padding: 16px 8px; border-radius: 11px; border: none;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 17px; font-weight: 800; letter-spacing: 0.5px;
+  text-transform: uppercase; cursor: pointer;
+  transition: all 0.18s;
+}
+.btn-role-customer { background: var(--yellow); color: var(--navy); }
+.btn-role-customer:hover { background: var(--yellow2); }
+.btn-role-tech { background: var(--blue); color: #fff; }
+.btn-role-tech:hover { background: var(--blue2); }
+
+/* ── PASSCODE POPUP ── */
+.popup-pass-overlay {
+  position: fixed; inset: 0; z-index: 9997;
+  background: rgba(0,0,0,0.88);
+  display: none; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.popup-pass-box {
+  background: var(--white); border-radius: 18px;
+  padding: 28px 22px 24px; max-width: 320px; width: 100%;
+  text-align: center; box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  border-top: 6px solid var(--blue);
+}
+.passcode-display {
+  font-family: 'DM Mono', monospace;
+  font-size: 32px; letter-spacing: 12px; color: var(--navy);
+  background: var(--offwhite); border-radius: 10px;
+  padding: 14px 10px; margin: 16px 0; min-height: 62px;
+  border: 1.5px solid var(--border);
+}
+.numpad {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; margin-top: 12px;
+}
+.numpad-btn {
+  padding: 16px; border-radius: 10px; border: 1.5px solid var(--border);
+  background: var(--white); font-family: 'Barlow Condensed', sans-serif;
+  font-size: 22px; font-weight: 800; color: var(--navy);
+  cursor: pointer; transition: all 0.15s;
+}
+.numpad-btn:active { background: var(--blue); color: #fff; transform: scale(0.95); }
+.numpad-del { background: #fdf0ef; color: var(--red); border-color: #f5c9c5; }
+.numpad-del:active { background: var(--red); color: #fff; }
+.pass-error {
+  color: var(--red); font-size: 12px; font-weight: 700;
+  font-family: 'Barlow', sans-serif; margin-top: 8px;
+  min-height: 18px; letter-spacing: 0.3px;
+}
+
+/* ── CUSTOMER MODE: hide non-emissions tabs ── */
+body.customer-mode .tab:not([data-tab="emissions"]) { display: none; }
+body.customer-mode .tab[data-tab="emissions"] { pointer-events: all; }
+
+</style>
+
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+
+
+<!-- ── DRIVING WARNING POPUP ── -->
+<div class="popup-overlay" id="drivingPopup">
+  <div class="popup-box">
+    <div class="popup-icon">⚠️</div>
+    <div class="popup-title">⚠️ WARNING ⚠️</div>
+    <div class="popup-subtitle">SAFETY NOTICE</div>
+    <div class="popup-msg">
+      <strong>Do NOT use this app while driving.</strong><br><br>
+      Pull over and come to a complete stop before scanning your vehicle or reading any diagnostic data.<br><br>
+      <span style="font-size:11px;color:var(--muted);">Bruckner Express Auto Repair · 347-597-4110</span>
+    </div>
+    <button class="btn-popup" onclick="document.getElementById('drivingPopup').style.display='none'">&#10003; &nbsp;I Am Not Driving</button>
+  </div>
+</div>
+
+<!-- ── ROLE SELECTION POPUP ── -->
+<div class="popup-role-overlay" id="rolePopup">
+  <div class="popup-role-box">
+    <div class="popup-icon">🔧</div>
+    <div class="popup-title" style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Who Are You?</div>
+    <div class="popup-subtitle" style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;">Select Your Role</div>
+    <div class="popup-msg" style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:4px;">
+      Customers have access to <strong>Emissions</strong> results.<br>
+      Technicians have <strong>full access</strong> to all features.
+    </div>
+    <div class="role-btn-grid">
+      <button class="btn-role btn-role-customer" onclick="selectCustomer()">
+        🚗<br>Customer
+      </button>
+      <button class="btn-role btn-role-tech" onclick="selectTechnician()">
+        🔧<br>Technician
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── PASSCODE POPUP ── -->
+<div class="popup-pass-overlay" id="passPopup">
+  <div class="popup-pass-box">
+    <div class="popup-icon">🔒</div>
+    <div class="popup-title" style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Technician Access</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:2px;">Enter passcode to continue</div>
+    <div class="passcode-display" id="passDisplay">_ _ _</div>
+    <div class="pass-error" id="passError"></div>
+    <div class="numpad">
+      <button class="numpad-btn" onclick="numpadPress('1')">1</button>
+      <button class="numpad-btn" onclick="numpadPress('2')">2</button>
+      <button class="numpad-btn" onclick="numpadPress('3')">3</button>
+      <button class="numpad-btn" onclick="numpadPress('4')">4</button>
+      <button class="numpad-btn" onclick="numpadPress('5')">5</button>
+      <button class="numpad-btn" onclick="numpadPress('6')">6</button>
+      <button class="numpad-btn" onclick="numpadPress('7')">7</button>
+      <button class="numpad-btn" onclick="numpadPress('8')">8</button>
+      <button class="numpad-btn" onclick="numpadPress('9')">9</button>
+      <button class="numpad-btn numpad-del" onclick="numpadDel()">⌫</button>
+      <button class="numpad-btn" onclick="numpadPress('0')">0</button>
+      <button class="numpad-btn numpad-del" style="font-size:13px;" onclick="numpadClear()">CLR</button>
+    </div>
+    <button style="margin-top:14px;width:100%;padding:13px;border-radius:10px;border:none;background:var(--offwhite);color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:0.5px;" onclick="backToRole()">← Back</button>
+  </div>
+</div>
+
+<header>
+  <div class="header-topbar"></div>
+  <div class="header-main">
+    <div class="header-photo">
+      <img src="data:image/jpeg;base64,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" alt="Mora — Bruckner Express">
+    </div>
+    <div class="header-text">
+      <!-- SWAPPED: large condensed name on top -->
+      <div class="shop-name-top">Bruckner <span>Express</span></div>
+      <!-- SWAPPED: smaller label below -->
+      <div class="shop-name-main">Auto Repair</div>
+      <div class="shop-address">783 Bruckner Blvd, Bronx, NY 10455</div>
+      <div class="header-sub">347-597-4110</div>
+    </div>
+    <div class="header-right">
+      <div class="status-badge">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Off</span>
+      </div>
+      <div class="phone-badge">NYS INSPECTION</div>
+    </div>
+  </div>
+  <div class="services-ticker">
+    <marquee behavior="scroll" direction="left" scrollamount="3">
+      <span class="ticker-inner">Advanced Diagnostics &nbsp;•&nbsp; ECU Programming &nbsp;•&nbsp; Module Programming &nbsp;•&nbsp; OEM Software Flashing &nbsp;•&nbsp; Electrical Diagnostics &nbsp;•&nbsp; Engine Repair &nbsp;•&nbsp; Transmission Service</span>
+    </marquee>
+  </div>
+</header>
+
+<!-- ── TABS ── -->
+<div class="tabs">
+  <button class="tab active" data-tab="connect" onclick="switchTab('connect')">Connect</button>
+  <button class="tab" data-tab="live" onclick="switchTab('live')">Live</button>
+  <button class="tab" data-tab="codes" onclick="switchTab('codes')">Codes</button>
+  <button class="tab" data-tab="freeze" onclick="switchTab('freeze')">Freeze</button>
+  <button class="tab" data-tab="emissions" onclick="switchTab('emissions')">Emissions</button>
+</div>
+
+<div class="content">
+
+  <!-- CONNECT -->
+  <div class="panel active" id="panel-connect">
+    <div class="conn-toggle-wrap">
+      <div class="conn-toggle">
+        <button class="conn-tab active" id="tabWifi" onclick="selectConnType('wifi')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+          WiFi
+        </button>
+        <button class="conn-tab" id="tabBt" onclick="selectConnType('bt')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/></svg>
+          Bluetooth
+        </button>
+      </div>
+    </div>
+
+    <div class="card" id="wifiSettings">
+      <div class="card-title">WiFi Adapter Settings</div>
+      <div class="input-row">
+        <span class="input-label">IP</span>
+        <input type="text" id="adapterIP" value="192.168.0.10" placeholder="192.168.0.10">
+      </div>
+      <div class="input-row">
+        <span class="input-label">Port</span>
+        <input type="number" id="adapterPort" value="35000" placeholder="35000">
+      </div>
+      <button class="btn btn-primary" id="connectBtn" onclick="connectWifi()">Connect via WiFi</button>
+      <button class="btn btn-danger" id="disconnectBtn" style="display:none" onclick="disconnect()">Disconnect</button>
+    </div>
+
+    <div class="card" id="btSettings" style="display:none">
+      <div class="card-title">Bluetooth Adapter</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;">Tap below to scan for nearby ELM327 BLE adapters. Keep adapter plugged in and powered.</p>
+      <div id="btDeviceInfo" style="display:none;margin-bottom:12px;">
+        <div class="bt-device-row">
+          <span style="font-size:20px">📡</span>
+          <div>
+            <div class="bt-device-name" id="btDeviceName">—</div>
+            <div class="bt-device-sub">ELM327 BLE</div>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btScanBtn" onclick="connectBluetooth()">Scan for Bluetooth Adapter</button>
+      <button class="btn btn-danger" id="btDisconnectBtn" style="display:none" onclick="disconnect()">Disconnect</button>
+      <div class="demo-note" style="margin-top:12px;">⚠️ Web Bluetooth: Android Chrome/Edge only. Use WiFi mode on iPhone.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Connection Log</div>
+      <div class="log-box" id="logBox">
+        <span class="log-entry">Ready. Choose WiFi or Bluetooth and connect.</span>
+      </div>
+    </div>
+
+    <div class="demo-note">
+      🔧 No adapter yet? Try <strong>Demo Mode</strong> with simulated vehicle data.
+      <br><br>
+      <button class="btn btn-outline" onclick="startDemo()">Enter Demo Mode</button>
+    </div>
+  </div>
+
+  <!-- LIVE DATA -->
+  <div class="panel" id="panel-live">
+    <div class="section-header">
+      <span class="section-title">Live Data</span>
+      <button class="refresh-btn" onclick="refreshLive()">↻ Refresh</button>
+    </div>
+    <div class="gauge-grid">
+      <div class="gauge-card"><div class="gauge-label">RPM</div><div class="gauge-value" id="rpm">—</div><div class="gauge-unit">rev/min</div><div class="gauge-bar"><div class="gauge-fill" id="rpmBar" style="width:0%"></div></div></div>
+      <div class="gauge-card"><div class="gauge-label">Speed</div><div class="gauge-value" id="speed">—</div><div class="gauge-unit">mph</div><div class="gauge-bar"><div class="gauge-fill" id="speedBar" style="width:0%"></div></div></div>
+      <div class="gauge-card"><div class="gauge-label">Coolant Temp</div><div class="gauge-value" id="coolant">—</div><div class="gauge-unit">°F</div><div class="gauge-bar"><div class="gauge-fill" id="coolantBar" style="width:0%"></div></div></div>
+      <div class="gauge-card"><div class="gauge-label">Engine Load</div><div class="gauge-value" id="load">—</div><div class="gauge-unit">percent</div><div class="gauge-bar"><div class="gauge-fill" id="loadBar" style="width:0%"></div></div></div>
+    </div>
+    <div class="battery-card">
+      <div class="battery-icon">🔋</div>
+      <div class="battery-info">
+        <div class="battery-voltage" id="voltage">— V</div>
+        <div class="battery-status good" id="batteryStatus">Connect to read</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Additional Sensors</div>
+      <div class="freeze-row"><span class="freeze-key">Intake Air Temp</span><span class="freeze-val" id="iat">—</span></div>
+      <div class="freeze-row"><span class="freeze-key">Throttle Position</span><span class="freeze-val" id="throttle">—</span></div>
+      <div class="freeze-row"><span class="freeze-key">Fuel Level</span><span class="freeze-val" id="fuel">—</span></div>
+      <div class="freeze-row"><span class="freeze-key">O2 Sensor</span><span class="freeze-val" id="o2">—</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Vehicle Identification</div>
+      <div class="freeze-row">
+        <span class="freeze-key">VIN</span>
+        <span class="freeze-val" id="vinDisplay" style="font-size:11px;word-break:break-all;">—</span>
+      </div>
+      <button class="btn btn-outline" style="margin-top:12px;" onclick="readVIN()">Read VIN</button>
+    </div>
+  </div>
+
+  <!-- CODES -->
+  <div class="panel" id="panel-codes">
+    <div class="section-header">
+      <span class="section-title">Trouble Codes</span>
+      <button class="refresh-btn" onclick="readDTCs()">↻ Read</button>
+    </div>
+    <div id="dtcList"><div class="no-codes"><div class="no-codes-icon">🔍</div><div class="no-codes-text">Connect and tap Read to scan</div></div></div>
+    <button class="btn btn-danger" id="clearCodesBtn" style="display:none" onclick="clearCodes()">Clear All Codes</button>
+  </div>
+
+  <!-- FREEZE -->
+  <div class="panel" id="panel-freeze">
+    <div class="section-header">
+      <span class="section-title">Freeze Frame</span>
+      <button class="refresh-btn" onclick="readFreeze()">↻ Read</button>
+    </div>
+    <div class="card" id="freezeCard">
+      <div style="text-align:center;padding:18px 0;color:var(--muted);font-size:13px;">Connect and tap Read to load data</div>
+    </div>
+  </div>
+
+  <!-- EMISSIONS -->
+  <div class="panel" id="panel-emissions">
+    <div class="section-header">
+      <span class="section-title">Emissions Readiness</span>
+      <button class="refresh-btn" onclick="readReadiness()">↻ Check</button>
+    </div>
+    <div class="card">
+      <div class="card-title">NYS Inspection Readiness Monitors</div>
+      <div id="readinessRows">
+        <div style="text-align:center;padding:18px 0;color:var(--muted);font-size:13px;">Connect and tap Check to read monitors</div>
+      </div>
+    </div>
+    <div class="card" id="milCard">
+      <div class="card-title">MIL / Check Engine Light</div>
+      <div class="freeze-row">
+        <span class="freeze-key">Check Engine Light</span>
+        <span id="milStatus" style="font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);">—</span>
+      </div>
+      <div class="freeze-row">
+        <span class="freeze-key">DTCs Present</span>
+        <span id="milDtcCount" style="font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);">—</span>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="readReadiness()">Check Emissions Readiness</button>
+    <div class="demo-note" style="margin-top:12px;">
+      🔍 <strong>Green</strong> = Ready &nbsp; <strong>Red</strong> = Not Ready &nbsp; <strong>Gray</strong> = Not Applicable<br>
+      All monitors must show Ready to pass NYS inspection.
+    </div>
+  </div>
+
+</div>
+
+<!-- ── EMAIL BAR ── -->
+<div class="email-bar">
+  <div class="email-bar-inner">
+    <div style="text-align:center; margin-bottom:6px;">
+      <a href="/cdn-cgi/l/email-protection#4e2f222c2b3c3a210e2f222c2b3c3a212a2f38272a602d2123713d3b2c242b2d3a730c3c3b2d25202b3c6e0b363e3c2b3d3d6e010c0a7c6e0f3e3e" style="font-family:'DM Mono',monospace; font-size:9px; color:rgba(14,61,138,0.5); letter-spacing:1.5px; text-transform:uppercase; text-decoration:none;">Made by AFDavid <span style="color:var(--blue);font-weight:700;">v1</span></a>
+    </div>
+    <button class="btn btn-yellow" onclick="emailReport()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      EMAIL REPORT TO BRUCKNER EXPRESS
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+
+
+let connected=false,demoMode=false,connType='wifi';
+  let demoInterval=null,socket=null,btDevice=null,btCharacteristic=null;
+  let commandQueue=[],waitingForResponse=false,btBuffer='';
+  const ELM_SERVICE='0000fff0-0000-1000-8000-00805f9b34fb';
+  const ELM_NOTIFY='0000fff1-0000-1000-8000-00805f9b34fb';
+  const ELM_WRITE='0000fff2-0000-1000-8000-00805f9b34fb';
+
+  function selectConnType(t){
+    connType=t;
+    document.getElementById('tabWifi').classList.toggle('active',t==='wifi');
+    document.getElementById('tabBt').classList.toggle('active',t==='bt');
+    document.getElementById('wifiSettings').style.display=t==='wifi'?'block':'none';
+    document.getElementById('btSettings').style.display=t==='bt'?'block':'none';
+  }
+  function switchTab(n){
+    document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['connect','live','codes','freeze','emissions'][i]===n));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('panel-'+n).classList.add('active');
+  }
+  function log(msg,type=''){
+    const box=document.getElementById('logBox');
+    const e=document.createElement('span');e.className='log-entry '+type;
+    const t=new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    e.textContent=`[${t}] ${msg}`;
+    box.appendChild(document.createElement('br'));box.appendChild(e);box.scrollTop=box.scrollHeight;
+  }
+  function showToast(msg){
+    const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),2500);
+  }
+  function setStatus(s){
+    document.getElementById('statusDot').className='status-dot '+s;
+    document.getElementById('statusText').textContent=s==='connected'?'Live':s==='connecting'?'Connecting…':s==='error'?'Error':'Off';
+    document.getElementById('connectBtn').style.display=s==='connected'?'none':'block';
+    document.getElementById('disconnectBtn').style.display=s==='connected'?'block':'none';
+    const bs=document.getElementById('btScanBtn'),bd=document.getElementById('btDisconnectBtn');
+    if(bs)bs.style.display=s==='connected'?'none':'block';
+    if(bd)bd.style.display=s==='connected'?'block':'none';
+  }
+
+  function connectWifi(){
+    const ip=document.getElementById('adapterIP').value.trim();
+    const port=document.getElementById('adapterPort').value.trim();
+    if(!ip||!port){showToast('Enter IP and port');return;}
+    setStatus('connecting');log(`Connecting to ${ip}:${port}…`,'info');
+    try{
+      socket=new WebSocket(`ws://${ip}:${port}`);
+      socket.onopen=()=>{connected=true;setStatus('connected');log('Connected! Initializing…','ok');showToast('Connected');initELM327();};
+      socket.onmessage=()=>{};
+      socket.onerror=()=>{log('Connection failed. Try Demo Mode.','err');setStatus('error');showToast('Connection failed');};
+      socket.onclose=()=>{if(connected){log('Connection closed.','err');disconnect();}};
+    }catch(e){log('Error: '+e.message,'err');setStatus('error');}
+  }
+  function sendCommand(cmd){return new Promise(resolve=>{commandQueue.push({cmd,resolve});processQueue();});}
+  function processQueue(){
+    if(waitingForResponse||commandQueue.length===0)return;
+    const{cmd,resolve}=commandQueue.shift();waitingForResponse=true;let buf='';
+    const orig=socket.onmessage;
+    socket.onmessage=e=>{buf+=e.data;if(buf.includes('>')){waitingForResponse=false;socket.onmessage=orig;resolve(buf.replace('>','').trim());processQueue();}};
+    socket.send(cmd+'\r');
+  }
+  async function initELM327(){
+    await sendCommand('ATZ');await sendCommand('ATE0');await sendCommand('ATL0');await sendCommand('ATSP0');
+    log('ELM327 ready.','ok');startLivePolling();
+  }
+
+  async function connectBluetooth(){
+    if(!navigator.bluetooth){
+      log('Web Bluetooth not supported in this browser.','err');
+      log('Use Chrome or Edge on Android. iPhone must use WiFi mode.','err');
+      showToast('Not supported — use WiFi on iPhone');
+      setStatus('error');
+      return;
+    }
+    if(location.protocol !== 'https:' && location.hostname !== 'localhost'){
+      log('Bluetooth requires HTTPS. Try WiFi mode instead.','err');
+      showToast('Needs HTTPS — use WiFi mode');
+      setStatus('error');
+      return;
+    }
+    setStatus('connecting');
+    log('Opening device picker — select your ELM327 adapter…','info');
+    try{
+      try{
+        btDevice = await navigator.bluetooth.requestDevice({
+          filters:[{namePrefix:'ELM'},{namePrefix:'OBD'},{namePrefix:'OBDII'},{namePrefix:'Vgate'},{namePrefix:'KONNWEI'},{namePrefix:'iCar'}],
+          optionalServices:[ELM_SERVICE,'0000ffe0-0000-1000-8000-00805f9b34fb']
+        });
+      }catch(fe){
+        log('Trying open scan…','info');
+        btDevice = await navigator.bluetooth.requestDevice({
+          acceptAllDevices:true,
+          optionalServices:[ELM_SERVICE,'0000ffe0-0000-1000-8000-00805f9b34fb']
+        });
+      }
+      log('Found: '+(btDevice.name||'Unknown'),'ok');
+      document.getElementById('btDeviceName').textContent = btDevice.name||'OBD Adapter';
+      document.getElementById('btDeviceInfo').style.display = 'block';
+      log('Connecting to GATT…','info');
+      const server = await btDevice.gatt.connect();
+      log('GATT connected.','ok');
+      let svc;
+      try{ svc = await server.getPrimaryService(ELM_SERVICE); }
+      catch(e){ svc = await server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb'); }
+      log('Service found.','ok');
+      try{ btCharacteristic = await svc.getCharacteristic(ELM_WRITE); }
+      catch(e){ btCharacteristic = await svc.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb'); }
+      let notify;
+      try{ notify = await svc.getCharacteristic(ELM_NOTIFY); }
+      catch(e){ notify = await svc.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb'); }
+      await notify.startNotifications();
+      notify.addEventListener('characteristicvaluechanged',e=>{
+        btBuffer += new TextDecoder().decode(e.target.value);
+        if(btBuffer.includes('>')&&commandQueue.length>0&&waitingForResponse){
+          const resp=btBuffer; btBuffer=''; waitingForResponse=false;
+          const{resolve}=commandQueue.shift();
+          resolve(resp.replace('>','').trim());
+          processBTQueue();
+        }
+      });
+      connected=true; connType='bt';
+      setStatus('connected');
+      log('Bluetooth connected! Initializing ELM327…','ok');
+      showToast('Bluetooth connected');
+      const sc=cmd=>new Promise(r=>{commandQueue.push({cmd,resolve:r});processBTQueue();});
+      await sc('ATZ'); await sc('ATE0'); await sc('ATL0'); await sc('ATSP0');
+      log('ELM327 BLE ready.','ok');
+      startLivePolling();
+    }catch(e){
+      setStatus('error');
+      const msg = e.message||e.toString();
+      if(msg.toLowerCase().includes('cancel')||msg.toLowerCase().includes('chose')){
+        log('Scan cancelled by user.','err');
+        showToast('Scan cancelled');
+        setStatus('disconnected');
+      } else if(msg.toLowerCase().includes('notfound')){
+        log('No OBD adapter found. Make sure it is plugged in and powered on.','err');
+        showToast('No adapter found nearby');
+      } else if(msg.toLowerCase().includes('security')||msg.toLowerCase().includes('https')){
+        log('Security error — app must run over HTTPS for Bluetooth.','err');
+        showToast('Security error — try WiFi mode');
+      } else {
+        log('BLE error: '+msg,'err');
+        showToast('Bluetooth failed — try WiFi mode');
+      }
+    }
+  }
+  function processBTQueue(){
+    if(waitingForResponse||commandQueue.length===0)return;
+    const{cmd}=commandQueue[0];waitingForResponse=true;
+    btCharacteristic.writeValue(new TextEncoder().encode(cmd+'\r'));
+  }
+
+  async function startLivePolling(){await pollAllPIDs();demoInterval=setInterval(pollAllPIDs,2000);}
+  async function pollAllPIDs(){
+    if(!connected||demoMode)return;
+    const send=connType==='bt'?(cmd=>new Promise(r=>{commandQueue.push({cmd,resolve:r});processBTQueue();})):sendCommand;
+    if(connType==='wifi'&&(!socket||socket.readyState!==WebSocket.OPEN))return;
+    try{
+      const r=parseRPM(await send('010C'));if(r!==null)updateGauge('rpm','rpmBar',Math.round(r),8000);
+      const sp=parseSpeed(await send('010D'));if(sp!==null)updateGauge('speed','speedBar',Math.round(sp*0.621371),120);
+      const co=parseCoolant(await send('0105'));if(co!==null)updateGauge('coolant','coolantBar',Math.round(co*9/5+32),250);
+      const lo=parseLoad(await send('0104'));if(lo!==null)updateGauge('load','loadBar',Math.round(lo),100);
+      updateVoltage(parseFloat(await send('ATRV')));
+      const ia=parseByte(await send('010F'),-40);if(ia!==null)document.getElementById('iat').textContent=Math.round(ia*9/5+32)+' °F';
+      const th=parseByte(await send('0111'),0,100/255);if(th!==null)document.getElementById('throttle').textContent=Math.round(th)+'%';
+      const fu=parseByte(await send('012F'),0,100/255);if(fu!==null)document.getElementById('fuel').textContent=Math.round(fu)+'%';
+    }catch(e){log('Poll error: '+e.message,'err');}
+  }
+
+  function hexBytes(r){return r.replace(/[^0-9A-Fa-f ]/g,'').trim().split(/\s+/).filter(b=>b.length===2).map(b=>parseInt(b,16));}
+  function parseRPM(r){const b=hexBytes(r);return b.length<4?null:((b[2]*256)+b[3])/4;}
+  function parseSpeed(r){const b=hexBytes(r);return b.length>=3?b[2]:null;}
+  function parseCoolant(r){const b=hexBytes(r);return b.length>=3?b[2]-40:null;}
+  function parseLoad(r){const b=hexBytes(r);return b.length>=3?b[2]*100/255:null;}
+  function parseByte(r,off=0,sc=1){const b=hexBytes(r);return b.length>=3?(b[2]+off)*sc:null;}
+
+  async function readDTCs(){
+    if(!connected&&!demoMode){showToast('Connect first');return;}
+    if(demoMode){showDemoDTCs();return;}
+    log('Reading DTCs…','info');
+    const send=connType==='bt'?(cmd=>new Promise(r=>{commandQueue.push({cmd,resolve:r});processBTQueue();})):sendCommand;
+    parseDTCs(await send('03'));
+  }
+  function parseDTCs(raw){
+    const bytes=hexBytes(raw),codes=[];
+    for(let i=0;i<bytes.length-1;i+=2){
+      if(bytes[i]===0&&bytes[i+1]===0)continue;
+      const p=['P','C','B','U'][(bytes[i]>>6)&0x03];
+      codes.push(p+((bytes[i]&0x3F).toString(16).toUpperCase().padStart(2,'0'))+bytes[i+1].toString(16).toUpperCase().padStart(2,'0'));
+    }
+    renderDTCs(codes.map(c=>{return{code:c,desc:dtcDescription(c),severity:'Check Required'}}));
+  }
+  async function clearCodes(){
+    if(!connected&&!demoMode)return;
+    if(!confirm('Clear all trouble codes?'))return;
+    if(!demoMode){const send=connType==='bt'?(cmd=>new Promise(r=>{commandQueue.push({cmd,resolve:r});processBTQueue();})):sendCommand;await send('04');}
+    log('Codes cleared.','ok');showToast('Codes cleared');renderDTCs([]);
+  }
+  async function readFreeze(){
+    if(!connected&&!demoMode){showToast('Connect first');return;}
+    if(demoMode){showDemoFreeze();return;}
+    const send=connType==='bt'?(cmd=>new Promise(r=>{commandQueue.push({cmd,resolve:r});processBTQueue();})):sendCommand;
+    const data={};
+    data['RPM']=(parseRPM(await send('020C00'))||'—')+' rpm';
+    const sp=parseSpeed(await send('020D00'));data['Speed']=sp!==null?Math.round(sp*0.621371)+' mph':'—';
+    const co=parseCoolant(await send('020500'));data['Coolant Temp']=co!==null?Math.round(co*9/5+32)+' °F':'—';
+    const lo=parseLoad(await send('020400'));data['Engine Load']=lo!==null?Math.round(lo)+'%':'—';
+    renderFreeze(data);
+  }
+
+  function updateGauge(id,barId,value,max){
+    const el=document.getElementById(id);el.textContent=value;el.classList.add('updating');
+    setTimeout(()=>el.classList.remove('updating'),400);
+    document.getElementById(barId).style.width=Math.min(100,(value/max)*100)+'%';
+  }
+  function updateVoltage(v){
+    if(isNaN(v))return;
+    document.getElementById('voltage').textContent=v.toFixed(1)+' V';
+    const s=document.getElementById('batteryStatus');
+    if(v>=12.6){s.textContent='Good';s.className='battery-status good';}
+    else if(v>=12.0){s.textContent='Fair — consider charging';s.className='battery-status warn';}
+    else{s.textContent='Low — may need replacement';s.className='battery-status bad';}
+  }
+  function renderDTCs(codes){
+    const list=document.getElementById('dtcList'),btn=document.getElementById('clearCodesBtn');
+    if(codes.length===0){list.innerHTML='<div class="no-codes"><div class="no-codes-icon">✅</div><div class="no-codes-text">No trouble codes found</div></div>';btn.style.display='none';}
+    else{list.innerHTML=codes.map(c=>`<div class="dtc-item"><div><div class="dtc-code">${c.code}</div><div class="dtc-severity">${c.severity}</div></div><div class="dtc-desc">${c.desc}</div></div>`).join('');btn.style.display='block';}
+  }
+  function renderFreeze(data){
+    document.getElementById('freezeCard').innerHTML='<div class="card-title">Snapshot at fault time</div>'+Object.entries(data).map(([k,v])=>`<div class="freeze-row"><span class="freeze-key">${k}</span><span class="freeze-val">${v}</span></div>`).join('');
+  }
+  function resetValues(){
+    ['rpm','speed','coolant','load'].forEach(id=>document.getElementById(id).textContent='—');
+    ['rpmBar','speedBar','coolantBar','loadBar'].forEach(id=>document.getElementById(id).style.width='0%');
+    ['iat','throttle','fuel','o2'].forEach(id=>document.getElementById(id).textContent='—');
+    document.getElementById('voltage').textContent='— V';
+    document.getElementById('batteryStatus').textContent='Connect to read';
+    document.getElementById('batteryStatus').className='battery-status good';
+    document.getElementById('vinDisplay').textContent='—';
+    document.getElementById('readinessRows').innerHTML='<div style="text-align:center;padding:18px 0;color:var(--muted);font-size:13px;">Connect and tap Check to read monitors</div>';
+    document.getElementById('milStatus').textContent='—';
+    document.getElementById('milDtcCount').textContent='—';
+  }
+  function disconnect(){
+    if(socket){socket.close();socket=null;}
+    if(btDevice&&btDevice.gatt.connected)btDevice.gatt.disconnect();
+    if(demoInterval){clearInterval(demoInterval);demoInterval=null;}
+    connected=false;demoMode=false;setStatus('disconnected');resetValues();log('Disconnected.','err');
+  }
+  function refreshLive(){if(demoMode)return;if(!connected){showToast('Connect first');return;}pollAllPIDs();}
+
+  async function readVIN(){
+    if(!connected&&!demoMode){showToast('Connect first');return;}
+    if(demoMode){document.getElementById('vinDisplay').textContent='1HGBH41JXMN109186 (Demo)';showToast('VIN loaded');return;}
+    log('Reading VIN…','info');
+    const send=connType==='bt'?(cmd=>new Promise(r=>{commandQueue.push({cmd,resolve:r});processBTQueue();})):sendCommand;
+    try{
+      const raw=await send('0902');
+      const bytes=hexBytes(raw);
+      let vin='';
+      for(let i=0;i<bytes.length;i++){
+        if(bytes[i]>=32&&bytes[i]<=126)vin+=String.fromCharCode(bytes[i]);
+      }
+      vin=vin.replace(/[^A-HJ-NPR-Z0-9]/gi,'').slice(-17);
+      document.getElementById('vinDisplay').textContent=vin||raw.trim();
+      log('VIN: '+(vin||'raw response shown'),'ok');
+    }catch(e){log('VIN error: '+e.message,'err');}
+  }
+
+  async function readReadiness(){
+    if(!connected&&!demoMode){showToast('Connect first');return;}
+    if(demoMode){showDemoReadiness();return;}
+    log('Reading readiness monitors…','info');
+    const send=connType==='bt'?(cmd=>new Promise(r=>{commandQueue.push({cmd,resolve:r});processBTQueue();})):sendCommand;
+    try{
+      const raw=await send('0101');
+      const b=hexBytes(raw);
+      if(b.length<6){log('Readiness: unexpected response','err');return;}
+      const milOn=!!(b[2]&0x80);
+      const dtcCount=b[2]&0x7F;
+      const avail=b.length>5?b[5]:0;
+      const ready=b.length>6?b[6]:0;
+      const monitors=[
+        {name:'Catalyst (CAT)',       bit:0},
+        {name:'Heated Catalyst',      bit:1},
+        {name:'EVAP System',          bit:2},
+        {name:'Secondary Air',        bit:3},
+        {name:'A/C Refrigerant',      bit:4},
+        {name:'O2 Sensor',            bit:5},
+        {name:'O2 Sensor Heater',     bit:6},
+        {name:'EGR System',           bit:7},
+      ];
+      const milStatusEl=document.getElementById('milStatus');
+      milStatusEl.textContent=milOn?'ON — Check Engine Light Active':'OFF — No MIL';
+      milStatusEl.style.color=milOn?'var(--red)':'var(--green)';
+      document.getElementById('milDtcCount').textContent=dtcCount+' code'+(dtcCount!==1?'s':'');
+      const rows=monitors.map(m=>{
+        const applicable=!!(avail&(1<<m.bit));
+        const complete=applicable?!(ready&(1<<m.bit)):null;
+        return readinessRow(m.name,applicable,complete);
+      }).join('');
+      document.getElementById('readinessRows').innerHTML=rows;
+      log('Readiness read. MIL:'+(milOn?'ON':'OFF')+', DTCs:'+dtcCount,'ok');
+      showToast('Readiness loaded');
+    }catch(e){log('Readiness error: '+e.message,'err');}
+  }
+
+  function readinessRow(name,applicable,complete){
+    let dot,label,color;
+    if(!applicable){dot='⬤';color='#aaa';label='N/A';}
+    else if(complete){dot='⬤';color='var(--green)';label='Ready ✓';}
+    else{dot='⬤';color='var(--red)';label='Not Ready';}
+    return `<div class="freeze-row">
+      <span class="freeze-key">${name}</span>
+      <span style="display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:12px;color:${color};">
+        <span style="color:${color};font-size:10px;">${dot}</span>${label}
+      </span>
+    </div>`;
+  }
+
+  function showDemoReadiness(){
+    document.getElementById('milStatus').textContent='OFF — No MIL';
+    document.getElementById('milStatus').style.color='var(--green)';
+    document.getElementById('milDtcCount').textContent='0 codes';
+    const monitors=[
+      {name:'Catalyst (CAT)',      applicable:true,  complete:true},
+      {name:'Heated Catalyst',     applicable:false, complete:null},
+      {name:'EVAP System',         applicable:true,  complete:false},
+      {name:'Secondary Air',       applicable:false, complete:null},
+      {name:'A/C Refrigerant',     applicable:false, complete:null},
+      {name:'O2 Sensor',           applicable:true,  complete:true},
+      {name:'O2 Sensor Heater',    applicable:true,  complete:true},
+      {name:'EGR System',          applicable:true,  complete:false},
+    ];
+    document.getElementById('readinessRows').innerHTML=monitors.map(m=>readinessRow(m.name,m.applicable,m.complete)).join('');
+    showToast('Demo readiness loaded');
+  }
+
+  function startDemo(){
+    demoMode=true;connected=true;setStatus('connected');
+    log('Demo mode — simulated vehicle data','info');showToast('Demo mode on');runDemoLive();switchTab('live');
+  }
+  function runDemoLive(){
+    let tick=0;
+    function update(){
+      if(!demoMode)return;tick++;
+      updateGauge('rpm','rpmBar',Math.round(800+Math.sin(tick/8)*600+Math.random()*200),8000);
+      updateGauge('speed','speedBar',Math.max(0,Math.round(35+Math.sin(tick/15)*30)),120);
+      updateGauge('coolant','coolantBar',Math.round(195+Math.sin(tick/30)*8),250);
+      updateGauge('load','loadBar',Math.round(25+Math.sin(tick/10)*20+Math.random()*5),100);
+      updateVoltage(parseFloat((12.6+Math.sin(tick/20)*0.3).toFixed(1)));
+      document.getElementById('iat').textContent='72 °F';
+      document.getElementById('throttle').textContent=Math.round(15+Math.sin(tick/10)*10)+'%';
+      document.getElementById('fuel').textContent='68%';
+      document.getElementById('o2').textContent='0.44 V';
+    }
+    demoInterval=setInterval(update,1000);update();
+  }
+  function showDemoDTCs(){renderDTCs([{code:'P0300',desc:'Random/Multiple Cylinder Misfire Detected',severity:'Emissions & Driveability'},{code:'P0420',desc:'Catalyst System Efficiency Below Threshold (Bank 1)',severity:'Emissions'},{code:'P0171',desc:'System Too Lean (Bank 1)',severity:'Fuel System'}]);}
+  function showDemoFreeze(){renderFreeze({'RPM':'1,240 rpm','Speed':'28 mph','Coolant Temp':'198 °F','Engine Load':'42%','Throttle':'18%','Fuel Trim':'+12.5%','Intake Air Temp':'68 °F','MAP Sensor':'98 kPa'});}
+
+  function dtcDescription(code){
+    const db={'P0100':'Mass Air Flow sensor malfunction','P0101':'MAF sensor range/performance','P0110':'Intake Air Temp sensor malfunction','P0115':'Coolant Temp sensor malfunction','P0120':'Throttle Position sensor malfunction','P0130':'O2 Sensor Circuit (Bank 1, Sensor 1)','P0171':'System Too Lean (Bank 1)','P0172':'System Too Rich (Bank 1)','P0300':'Random/Multiple Cylinder Misfire','P0301':'Cylinder 1 Misfire','P0302':'Cylinder 2 Misfire','P0303':'Cylinder 3 Misfire','P0304':'Cylinder 4 Misfire','P0325':'Knock Sensor malfunction','P0335':'Crankshaft Position Sensor malfunction','P0340':'Camshaft Position Sensor malfunction','P0400':'EGR Flow malfunction','P0420':'Catalyst System Efficiency Below Threshold (Bank 1)','P0430':'Catalyst System Efficiency Below Threshold (Bank 2)','P0440':'EVAP System malfunction','P0442':'EVAP System Small Leak','P0455':'EVAP System Large Leak','P0500':'Vehicle Speed Sensor malfunction','P0505':'Idle Control System malfunction','P0700':'Transmission Control System malfunction'};
+    return db[code]||'Manufacturer-specific or unknown — look up '+code;
+  }
+
+  function emailReport(){
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    const timeStr = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const rpm      = document.getElementById('rpm').textContent;
+    const speed    = document.getElementById('speed').textContent;
+    const coolant  = document.getElementById('coolant').textContent;
+    const load     = document.getElementById('load').textContent;
+    const voltage  = document.getElementById('voltage').textContent;
+    const batStat  = document.getElementById('batteryStatus').textContent;
+    const iat      = document.getElementById('iat').textContent;
+    const throttle = document.getElementById('throttle').textContent;
+    const fuel     = document.getElementById('fuel').textContent;
+    const o2       = document.getElementById('o2').textContent;
+    const vin      = document.getElementById('vinDisplay').textContent;
+    const connStatus = connected ? (demoMode ? 'Demo Mode' : connType==='bt' ? 'Live - ELM327 Bluetooth' : 'Live - ELM327 WiFi') : 'Not Connected';
+
+    // DTCs
+    const dtcEls = document.querySelectorAll('.dtc-item');
+    let dtcText = dtcEls.length === 0 ? '  No trouble codes detected.' : '';
+    dtcEls.forEach(el => {
+      const code = el.querySelector('.dtc-code')?.textContent || '';
+      const desc = el.querySelector('.dtc-desc')?.textContent || '';
+      const sev  = el.querySelector('.dtc-severity')?.textContent || '';
+      dtcText += '\n  ' + code + ' - ' + desc + ' (' + sev + ')';
+    });
+
+    // Freeze frame
+    const fRows = document.querySelectorAll('#freezeCard .freeze-row');
+    let freezeText = fRows.length === 0 ? '  No freeze frame data.' : '';
+    fRows.forEach(row => {
+      const k = row.querySelector('.freeze-key')?.textContent || '';
+      const v = row.querySelector('.freeze-val')?.textContent || '';
+      freezeText += '\n  ' + k + ': ' + v;
+    });
+
+    // Emissions
+    const milStatusRaw = document.getElementById('milStatus').textContent || '-';
+    const milDtcRaw    = document.getElementById('milDtcCount').textContent || '-';
+    const milOn = milStatusRaw.includes('ON');
+    const milLine = milOn ? '  CHECK ENGINE LIGHT: ON (ACTIVE)' : '  CHECK ENGINE LIGHT: OFF';
+
+    const emRows = [];
+    document.querySelectorAll('#readinessRows .freeze-row').forEach(row => {
+      const mon = (row.querySelector('.freeze-key')?.textContent || '').trim();
+      const statusEl = row.querySelector('span[style]');
+      const statusTxt = (statusEl?.textContent || '').trim();
+      let badge = '[  N/A   ]';
+      if (statusTxt.includes('Ready') && !statusTxt.includes('Not')) badge = '[READY  v]';
+      else if (statusTxt.includes('Not Ready')) badge = '[NOT READY]';
+      emRows.push('  ' + mon.padEnd(28) + badge);
+    });
+
+    const notReady = emRows.filter(r => r.includes('NOT READY')).length;
+    const ready    = emRows.filter(r => r.includes('READY  v')).length;
+    const na       = emRows.filter(r => r.includes('N/A')).length;
+    let outlook = '  Emissions not checked.';
+    if (emRows.length > 0) {
+      outlook = (!milOn && notReady === 0)
+        ? '  >> OUTLOOK: LIKELY TO PASS NYS INSPECTION'
+        : '  >> OUTLOOK: MAY NOT PASS - ' + notReady + ' monitor(s) NOT READY' + (milOn ? ' + MIL ON' : '');
+    }
+
+    const LINE = '================================================';
+    const DASH = '------------------------------------------------';
+
+    const subject = 'Bruckner Express - OBD2 Report | ' + dateStr;
+    const body = [
+      LINE,
+      '  BRUCKNER EXPRESS AUTO REPAIR',
+      '  783 Bruckner Blvd, Bronx, NY 10455',
+      '  Tel: 347-597-4110',
+      '  OBD2 DIAGNOSTIC REPORT',
+      LINE,
+      '  Date:       ' + dateStr,
+      '  Time:       ' + timeStr,
+      '  VIN:        ' + vin,
+      '  Connection: ' + connStatus,
+      LINE,
+      '',
+      LINE,
+      '  LIVE DATA SNAPSHOT',
+      LINE,
+      '  Engine RPM ............. ' + rpm + ' rev/min',
+      '  Vehicle Speed .......... ' + speed + ' mph',
+      '  Coolant Temp ........... ' + coolant + ' F',
+      '  Engine Load ............ ' + load + '%',
+      '  Battery Voltage ........ ' + voltage,
+      '  Battery Status ......... ' + batStat,
+      '  Intake Air Temp ........ ' + iat,
+      '  Throttle Position ...... ' + throttle,
+      '  Fuel Level ............. ' + fuel,
+      '  O2 Sensor .............. ' + o2,
+      LINE,
+      '',
+      LINE,
+      '  TROUBLE CODES (DTCs)',
+      LINE,
+      dtcText,
+      LINE,
+      '',
+      LINE,
+      '  FREEZE FRAME DATA',
+      LINE,
+      freezeText,
+      LINE,
+      '',
+      LINE,
+      '  EMISSIONS READINESS MONITORS',
+      LINE,
+      milLine,
+      '  DTCs Stored: ' + milDtcRaw,
+      DASH,
+      '  MONITOR                         STATUS',
+      DASH,
+      emRows.join('\n'),
+      DASH,
+      outlook,
+      '  (' + ready + ' Ready  |  ' + notReady + ' Not Ready  |  ' + na + ' N/A)',
+      LINE,
+      '',
+      LINE,
+      '  Report: ' + dateStr + ' at ' + timeStr,
+      '  Bruckner Express Auto Repair OBD2 App',
+      '  347-597-4110  |  783 Bruckner Blvd, Bronx NY',
+      LINE
+    ].join('\n');
+
+    window.location.href = 'mai
+
+// ── Role & Passcode Logic ──
+  var passcodeInput = '';
+  var TECH_CODE = '783';
+
+  function showRolePopup() {
+    document.getElementById('rolePopup').style.display = 'flex';
+  }
+
+  function selectCustomer() {
+    document.getElementById('rolePopup').style.display = 'none';
+    document.body.classList.add('customer-mode');
+    // Force emissions tab active
+    switchTab('emissions');
+    showToast('Customer mode — Emissions access only');
+  }
+
+  function selectTechnician() {
+    document.getElementById('rolePopup').style.display = 'none';
+    passcodeInput = '';
+    updatePassDisplay();
+    document.getElementById('passError').textContent = '';
+    document.getElementById('passPopup').style.display = 'flex';
+  }
+
+  function numpadPress(digit) {
+    if (passcodeInput.length >= 3) return;
+    passcodeInput += digit;
+    updatePassDisplay();
+    if (passcodeInput.length === 3) {
+      setTimeout(checkPasscode, 150);
+    }
+  }
+
+  function numpadDel() {
+    passcodeInput = passcodeInput.slice(0, -1);
+    updatePassDisplay();
+    document.getElementById('passError').textContent = '';
+  }
+
+  function numpadClear() {
+    passcodeInput = '';
+    updatePassDisplay();
+    document.getElementById('passError').textContent = '';
+  }
+
+  function updatePassDisplay() {
+    var dots = '';
+    for (var i = 0; i < 3; i++) {
+      dots += (i < passcodeInput.length) ? '●' : '_';
+      if (i < 2) dots += ' ';
+    }
+    document.getElementById('passDisplay').textContent = dots;
+  }
+
+  function checkPasscode() {
+    if (passcodeInput === TECH_CODE) {
+      document.getElementById('passPopup').style.display = 'none';
+      document.body.classList.remove('customer-mode');
+      showToast('✓ Technician access granted');
+    } else {
+      document.getElementById('passError').textContent = 'Incorrect passcode. Try again.';
+      passcodeInput = '';
+      updatePassDisplay();
+      // Shake the display
+      var d = document.getElementById('passDisplay');
+      d.style.borderColor = 'var(--red)';
+      setTimeout(function(){ d.style.borderColor = 'var(--border)'; }, 1000);
+    }
+  }
+
+  function backToRole() {
+    document.getElementById('passPopup').style.display = 'none';
+    document.getElementById('rolePopup').style.display = 'flex';
+    passcodeInput = '';
+    updatePassDisplay();
+    document.getElementById('passError').textContent = '';
+  }
+
+  // Chain: after driving popup dismissed → show role popup
+  // Override the inline onclick on the driving popup button
+  document.addEventListener('DOMContentLoaded', function() {
+    var driveBtn = document.querySelector('#drivingPopup .btn-popup');
+    if (driveBtn) {
+      driveBtn.setAttribute('onclick', "document.getElementById('drivingPopup').style.display='none'; showRolePopup();");
+    }
+  });
+  });
+
+</script>
+</body>
+</html>
